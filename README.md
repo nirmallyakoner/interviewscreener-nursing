@@ -1,4 +1,4 @@
-# Interviewscreener-Nursing SaaS
+# NursingPrep - Nursing Interview Practice SaaS
 
 A Next.js 14 App Router SaaS application for nursing interview practice, powered by Supabase and Retell AI.
 

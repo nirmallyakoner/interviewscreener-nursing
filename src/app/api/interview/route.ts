@@ -13,31 +13,60 @@ export async function POST(request: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Please log in to start an interview' },
         { status: 401 }
       )
     }
 
-    // Check user's credits in the profiles table
+    // Fetch user profile to check credits
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('interview_credits, is_gnm')
+      .select('interviews_remaining, interview_duration, subscription_type')
       .eq('id', user.id)
       .single()
 
-    if (profileError) {
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError)
       return NextResponse.json(
-        { error: 'Failed to fetch user profile' },
+        { error: 'Failed to fetch your account details. Please try again.' },
         { status: 500 }
       )
     }
 
-    if (!profile || profile.interview_credits <= 0) {
+    // Check if user has remaining interviews
+    if (!profile.interviews_remaining || profile.interviews_remaining <= 0) {
       return NextResponse.json(
-        { error: 'Insufficient credits. Please purchase more credits to continue.' },
+        { 
+          error: 'No interviews remaining. Please upgrade your subscription.',
+          interviews_remaining: 0,
+          subscription_type: profile.subscription_type 
+        },
         { status: 403 }
       )
     }
+
+    // Deduct one interview
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        interviews_remaining: profile.interviews_remaining - 1,
+      })
+      .eq('id', user.id)
+
+    if (updateError) {
+      console.error('Interview count update error:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to start interview. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    // Log interview start
+    console.log('Interview started', {
+      user_id: user.id,
+      interviews_remaining: profile.interviews_remaining - 1,
+      duration: profile.interview_duration
+    })
 
     // TODO: Integrate with Retell AI SDK
     // This is where you would call Retell AI to start an interview session
@@ -51,34 +80,23 @@ export async function POST(request: Request) {
     //   body: JSON.stringify({
     //     user_id: user.id,
     //     interview_type: 'nursing',
-    //     is_gnm: profile.is_gnm,
+    //     interview_duration: profile.interview_duration,
     //   }),
     // })
 
-    // Decrement user's credits
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ interview_credits: profile.interview_credits - 1 })
-      .eq('id', user.id)
-
-    if (updateError) {
-      return NextResponse.json(
-        { error: 'Failed to update credits' },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({
       success: true,
-      message: 'Interview session started',
-      remaining_credits: profile.interview_credits - 1,
-      // retell_session_id: retellResponse.session_id, // Add when Retell AI is integrated
+      message: 'Interview session started successfully',
+      interview_duration: profile.interview_duration,
+      interviews_remaining: profile.interviews_remaining - 1,
+      subscription_type: profile.subscription_type,
     })
   } catch (error: any) {
     console.error('Interview API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'An unexpected error occurred. Please try again or contact support.' },
       { status: 500 }
     )
   }
 }
+

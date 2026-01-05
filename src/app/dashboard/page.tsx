@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StartInterviewButton } from '../components/StartInterviewButton'
+import { PricingCard } from '../components/PricingCard'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -14,10 +15,10 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Fetch user profile
+  // Fetch user profile with new subscription fields
   const { data: profile } = await supabase
     .from('profiles')
-    .select('interview_credits, course_type, name, email')
+    .select('subscription_type, interviews_remaining, interview_duration, course_type, name, email')
     .eq('id', user.id)
     .single()
 
@@ -25,9 +26,9 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Interviewscreener
-          </h1>
+          <Link href="/dashboard" className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors">
+            NursingPrep
+          </Link>
           <div className="flex items-center gap-4">
             <Link 
               href="/profile" 
@@ -55,46 +56,40 @@ export default async function DashboardPage() {
           <p className="text-gray-600">{profile?.email}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Credits Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Interview Credits
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - User Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Course Card */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Your Course
               </h3>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-bold">
-                  {profile?.interview_credits || 0}
+              <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full">
+                <span className="text-sm font-medium text-gray-900">
+                  {profile?.course_type || 'Not Set'}
                 </span>
               </div>
             </div>
-            <p className="text-gray-600 text-sm">
-              You have {profile?.interview_credits || 0} interview{' '}
-              {profile?.interview_credits === 1 ? 'credit' : 'credits'} remaining
-            </p>
-          </div>
 
-          {/* Course Type Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Your Course
-            </h3>
-            <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full">
-              <span className="text-sm font-medium text-gray-900">
-                {profile?.course_type || 'Not Set'}
-              </span>
+            {/* Start Interview Card */}
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+              <h3 className="text-lg font-semibold mb-4">
+                Ready to Practice?
+              </h3>
+              <p className="text-blue-100 text-sm mb-6">
+                Start a {profile?.interview_duration || 5}-minute nursing interview session
+              </p>
+              <StartInterviewButton hasCredits={(profile?.interviews_remaining || 0) > 0} />
             </div>
           </div>
 
-          {/* Start Interview Card */}
-          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
-            <h3 className="text-lg font-semibold mb-4">
-              Ready to Practice?
-            </h3>
-            <p className="text-blue-100 text-sm mb-6">
-              Start a new nursing interview session
-            </p>
-            <StartInterviewButton hasCredits={(profile?.interview_credits || 0) > 0} />
+          {/* Right Column - Pricing Card */}
+          <div className="lg:col-span-1">
+            <PricingCard
+              subscriptionType={profile?.subscription_type || 'free'}
+              interviewsRemaining={profile?.interviews_remaining || 0}
+              interviewDuration={profile?.interview_duration || 5}
+            />
           </div>
         </div>
 

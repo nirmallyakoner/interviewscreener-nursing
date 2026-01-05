@@ -93,7 +93,7 @@ export default function ProfilePage() {
         <nav className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <Link href="/dashboard" className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors">
-              Interviewscreener
+              NursingPrep
             </Link>
             <Link href="/dashboard" className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors cursor-pointer">
               ← Back to Dashboard
@@ -144,9 +144,27 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Interview Credits
+                    Subscription Type
                   </label>
-                  <p className="text-2xl font-bold text-blue-600">{profile?.interview_credits || 0}</p>
+                  <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full">
+                    <span className="text-sm font-medium text-gray-900">
+                      {profile?.subscription_type === 'paid' ? 'Premium' : 'Free Trial'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    Interviews Remaining
+                  </label>
+                  <p className="text-2xl font-bold text-blue-600">{profile?.interviews_remaining || 0}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">
+                    Interview Duration
+                  </label>
+                  <p className="text-lg text-gray-900">{profile?.interview_duration || 5} minutes</p>
                 </div>
 
                 <div>
