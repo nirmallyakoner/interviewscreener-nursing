@@ -66,13 +66,30 @@ export function PricingCard({ subscriptionType, interviewsRemaining, interviewDu
         </div>
       )}
 
-      {/* Free Trial Used */}
+      {/* Free Trial Active - Show upgrade option */}
       {isFree && hasCredits && (
         <div className="border-t border-gray-200 pt-6">
           <div className="bg-blue-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-blue-700">
               🎉 You have {interviewsRemaining} free interview{interviewsRemaining > 1 ? 's' : ''} remaining!
             </p>
+          </div>
+          
+          {/* Upgrade Option */}
+          <div className="mt-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Want More?</h3>
+            <p className="text-gray-600 text-sm mb-3">
+              Upgrade to Premium for 2 more interviews with 8-minute duration
+            </p>
+            
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-700">2 Premium Interviews</span>
+                <span className="font-bold text-blue-600">₹149</span>
+              </div>
+            </div>
+            
+            <RazorpayCheckout amount={14900} />
           </div>
         </div>
       )}
