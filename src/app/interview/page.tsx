@@ -31,7 +31,7 @@ export default function InterviewPage() {
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('interviews_remaining, interview_duration, subscription_type')
+        .select('interviews_remaining, interview_duration, subscription_type, course_type')
         .eq('id', user.id)
         .single()
 
@@ -123,10 +123,17 @@ export default function InterviewPage() {
           )}
 
           {step === 'interview' && profile && (
-            <VoiceInterview
-              durationMinutes={profile.interview_duration}
-              onComplete={handleInterviewComplete}
-            />
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-center">
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Interview Program:</span> {profile.course_type}
+                </p>
+              </div>
+              <VoiceInterview
+                durationMinutes={profile.interview_duration}
+                onComplete={handleInterviewComplete}
+              />
+            </>
           )}
 
           {step === 'complete' && (

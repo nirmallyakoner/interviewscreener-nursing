@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Get user profile to check credits and duration
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('interviews_remaining, interview_duration, subscription_type')
+      .select('interviews_remaining, interview_duration, subscription_type, course_type')
       .eq('id', user.id)
       .single()
 
@@ -64,8 +64,12 @@ export async function POST(request: NextRequest) {
       agent_id: process.env.RETELL_AGENT_ID!,
       metadata: {
         user_id: user.id,
-        duration_minutes: profile.interview_duration.toString(),
         subscription_type: profile.subscription_type,
+      },
+      // Dynamic variables for template substitution in agent prompt
+      retell_llm_dynamic_variables: {
+        course_type: profile.course_type,
+        duration_minutes: profile.interview_duration.toString(),
       },
     })
 
