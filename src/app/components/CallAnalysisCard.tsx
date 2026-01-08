@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface CallAnalysis {
   overall_score?: number
@@ -30,6 +30,16 @@ interface CallAnalysisCardProps {
 
 export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+
+  useEffect(() => {
+    console.log('[CallAnalysisCard] Rendering with session:', {
+      id: session.id,
+      started_at: session.started_at,
+      has_analysis: !!session.analysis,
+      has_transcript: !!session.transcript,
+      status: session.status
+    })
+  }, [session])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

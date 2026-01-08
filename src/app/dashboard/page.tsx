@@ -24,7 +24,8 @@ export default async function DashboardPage() {
     .single()
 
   // Fetch latest completed interview session with analysis
-  const { data: latestSession } = await supabase
+  console.log('[Dashboard] Fetching latest interview session for user:', user.id)
+  const { data: latestSession, error: sessionError } = await supabase
     .from('interview_sessions')
     .select('*')
     .eq('user_id', user.id)
@@ -33,6 +34,18 @@ export default async function DashboardPage() {
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle()  // Use maybeSingle() to avoid error when no data exists
+
+  if (sessionError) {
+    console.error('[Dashboard] Error fetching latest session:', sessionError)
+  } else if (latestSession) {
+    console.log('[Dashboard] Latest session found:', {
+      id: latestSession.id,
+      started_at: latestSession.started_at,
+      has_analysis: !!latestSession.analysis
+    })
+  } else {
+    console.log('[Dashboard] No completed sessions with analysis found')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

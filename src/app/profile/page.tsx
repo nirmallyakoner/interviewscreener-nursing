@@ -24,40 +24,54 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
+      console.log('[Profile] Loading profile data...')
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
+        console.log('[Profile] No user found, redirecting to login')
         router.push('/login')
         return
       }
 
+      console.log('[Profile] User authenticated:', user.id)
       setUser(user)
 
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
 
-      if (profileData) {
+      if (profileError) {
+        console.error('[Profile] Error loading profile:', profileError)
+      } else if (profileData) {
+        console.log('[Profile] Profile loaded successfully')
         setProfile(profileData)
         setName(profileData.name || '')
         setCourseType(profileData.course_type || 'BSc Nursing')
       }
 
       // Fetch all interview sessions with analysis
-      const { data: sessionsData } = await supabase
+      console.log('[Profile] Fetching interview sessions...')
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from('interview_sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'completed')
         .order('started_at', { ascending: false })
 
-      if (sessionsData) {
+      if (sessionsError) {
+        console.error('[Profile] Error loading sessions:', sessionsError)
+      } else if (sessionsData) {
+        console.log('[Profile] Sessions loaded:', {
+          total: sessionsData.length,
+          with_analysis: sessionsData.filter(s => s.analysis).length,
+          without_analysis: sessionsData.filter(s => !s.analysis).length
+        })
         setInterviewSessions(sessionsData)
       }
     } catch (error) {
-      console.error('Error loading profile:', error)
+      console.error('[Profile] Unexpected error loading profile:', error)
     } finally {
       setLoading(false)
     }
