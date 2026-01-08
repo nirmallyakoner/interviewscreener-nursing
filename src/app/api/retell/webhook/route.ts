@@ -77,55 +77,96 @@ export async function POST(request: NextRequest) {
 
       case 'call_ended':
         console.log('🏁 Processing call_ended event...')
+        
         // Update session with transcript and duration
         const duration = call.end_timestamp && call.start_timestamp
           ? Math.floor((call.end_timestamp - call.start_timestamp) / 1000)
           : null
 
+        // Extract transcript - Retell sends it as a string
+        const transcript = call.transcript || call.transcript_text || null
+        
         console.log('📊 Call details:')
         console.log('   Duration (seconds):', duration)
-        console.log('   Transcript length:', call.transcript?.length || 0)
-        console.log('   Has transcript:', !!call.transcript)
+        console.log('   Transcript type:', typeof call.transcript)
+        console.log('   Transcript length:', transcript?.length || 0)
+        console.log('   Has transcript:', !!transcript)
+        console.log('   Transcript preview:', transcript ? transcript.substring(0, 200) + '...' : 'null')
+
+        const updateData = {
+          status: 'completed',
+          ended_at: new Date().toISOString(),
+          actual_duration_seconds: duration,
+          transcript: transcript,
+        }
+        
+        console.log('📝 Updating database with:', {
+          ...updateData,
+          transcript: transcript ? `${transcript.length} chars` : 'null'
+        })
 
         const endResult = await supabaseAdmin
           .from('interview_sessions')
-          .update({
-            status: 'completed',
-            ended_at: new Date().toISOString(),
-            actual_duration_seconds: duration,
-            transcript: call.transcript || null,
-          })
+          .update(updateData)
           .eq('retell_call_id', call.call_id)
+          .select()
         
         if (endResult.error) {
           console.error('❌ DB Error (call_ended):', endResult.error)
+          console.error('   Error code:', endResult.error.code)
+          console.error('   Error message:', endResult.error.message)
+          console.error('   Error details:', endResult.error.details)
         } else {
           console.log('✅ Successfully updated session with transcript and duration')
           console.log('   Updated rows:', endResult.count || 'unknown')
+          console.log('   Updated data:', JSON.stringify(endResult.data, null, 2))
           console.log('   Session marked as completed')
         }
         break
 
       case 'call_analyzed':
         console.log('📊 Processing call_analyzed event...')
+        console.log('📋 Full call object keys:', Object.keys(call))
+        
+        // Retell's post-call data extraction fields
+        const callSummary = (call as any).call_summary || null
+        const callSuccessful = (call as any).call_successful || null
+        const customExtractions = (call as any).custom_analysis_data || {}
+        
+        // Build structured analysis object
+        const analysisData = {
+          summary: callSummary,
+          successful: callSuccessful,
+          ...customExtractions,
+          // Include any other analysis fields from call.analysis if it exists
+          ...(call.analysis || {}),
+        }
+        
         console.log('📋 Analysis data received:')
-        console.log('   Has analysis:', !!call.analysis)
-        console.log('   Analysis keys:', call.analysis ? Object.keys(call.analysis) : [])
-        console.log('   Full analysis:', JSON.stringify(call.analysis, null, 2))
+        console.log('   Call Summary:', callSummary)
+        console.log('   Call Successful:', callSuccessful)
+        console.log('   Has call.analysis:', !!call.analysis)
+        console.log('   Analysis type:', typeof call.analysis)
+        console.log('   Full analysis object:', JSON.stringify(analysisData, null, 2))
         
         // Store AI analysis/feedback
         const analysisResult = await supabaseAdmin
           .from('interview_sessions')
           .update({
-            analysis: call.analysis || null,
+            analysis: analysisData,
           })
           .eq('retell_call_id', call.call_id)
+          .select()
         
         if (analysisResult.error) {
           console.error('❌ DB Error (call_analyzed):', analysisResult.error)
+          console.error('   Error code:', analysisResult.error.code)
+          console.error('   Error message:', analysisResult.error.message)
+          console.error('   Error details:', JSON.stringify(analysisResult.error, null, 2))
         } else {
           console.log('✅ Successfully stored analysis data')
           console.log('   Updated rows:', analysisResult.count || 'unknown')
+          console.log('   Updated data:', JSON.stringify(analysisResult.data, null, 2))
         }
         break
 
