@@ -14,12 +14,26 @@ const supabaseAdmin = createClient(
   }
 )
 
+// Add GET handler for debugging
+export async function GET(request: NextRequest) {
+  console.log('GET request received at webhook endpoint')
+  return NextResponse.json({ 
+    status: 'Webhook endpoint is active',
+    message: 'Use POST method to send webhook data',
+    url: request.url
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== RETELL WEBHOOK RECEIVED ===')
+    console.log('Method:', request.method)
+    console.log('URL:', request.url)
+    console.log('Headers:', Object.fromEntries(request.headers.entries()))
+    
     const body = await request.json()
     const signature = request.headers.get('x-retell-signature')
 
-    console.log('=== RETELL WEBHOOK RECEIVED ===')
     console.log('Event:', body.event)
     console.log('Call ID:', body.call?.call_id)
     console.log('Timestamp:', new Date().toISOString())
