@@ -128,10 +128,30 @@ export async function POST(request: NextRequest) {
         console.log('📊 Processing call_analyzed event...')
         console.log('📋 Full call object keys:', Object.keys(call))
         
+        // Log ALL top-level fields to find where the analysis data is
+        console.log('🔍 Inspecting call object structure:')
+        for (const key of Object.keys(call)) {
+          const value = (call as any)[key]
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            console.log(`   ${key}: {object with keys: ${Object.keys(value).join(', ')}}`)
+          } else if (Array.isArray(value)) {
+            console.log(`   ${key}: [array with ${value.length} items]`)
+          } else {
+            console.log(`   ${key}: ${typeof value}`)
+          }
+        }
+        
+        // Check for call_analysis field specifically
+        const callAnalysis = (call as any).call_analysis
+        console.log('🎯 call_analysis field exists:', !!callAnalysis)
+        if (callAnalysis) {
+          console.log('🎯 call_analysis content:', JSON.stringify(callAnalysis, null, 2))
+        }
+        
         // Retell's post-call data extraction fields
-        const callSummary = (call as any).call_summary || null
-        const callSuccessful = (call as any).call_successful || null
-        const customExtractions = (call as any).custom_analysis_data || {}
+        const callSummary = (call as any).call_summary || callAnalysis?.call_summary || null
+        const callSuccessful = (call as any).call_successful || callAnalysis?.call_successful || null
+        const customExtractions = (call as any).custom_analysis_data || callAnalysis || {}
         
         // Build structured analysis object
         const analysisData = {
