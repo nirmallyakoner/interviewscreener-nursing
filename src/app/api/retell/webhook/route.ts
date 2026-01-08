@@ -26,18 +26,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== RETELL WEBHOOK RECEIVED ===')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('🔔 RETELL WEBHOOK RECEIVED')
     console.log('Method:', request.method)
     console.log('URL:', request.url)
+    console.log('Timestamp:', new Date().toISOString())
     console.log('Headers:', Object.fromEntries(request.headers.entries()))
     
     const body = await request.json()
     const signature = request.headers.get('x-retell-signature')
 
-    console.log('Event:', body.event)
-    console.log('Call ID:', body.call?.call_id)
-    console.log('Timestamp:', new Date().toISOString())
-    console.log('Full payload:', JSON.stringify(body, null, 2))
+    console.log('📦 Payload Details:')
+    console.log('  Event:', body.event)
+    console.log('  Call ID:', body.call?.call_id)
+    console.log('  Full payload:', JSON.stringify(body, null, 2))
 
     // Verify webhook signature (if you have webhook secret)
     // const isValid = verifyWebhookSignature(body, signature)
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
       console.error('❌ ERROR: Missing call_id in webhook payload')
       return NextResponse.json({ error: 'Missing call_id' }, { status: 400 })
     }
+
+    console.log(`\n🔄 Processing event: ${event}`)
 
     switch (event) {
       case 'call_started':
@@ -67,6 +71,7 @@ export async function POST(request: NextRequest) {
           console.error('❌ DB Error (call_started):', startResult.error)
         } else {
           console.log('✅ Successfully updated session to started')
+          console.log('   Updated rows:', startResult.count || 'unknown')
         }
         break
 
@@ -77,8 +82,10 @@ export async function POST(request: NextRequest) {
           ? Math.floor((call.end_timestamp - call.start_timestamp) / 1000)
           : null
 
-        console.log('Call duration (seconds):', duration)
-        console.log('Transcript length:', call.transcript?.length || 0)
+        console.log('📊 Call details:')
+        console.log('   Duration (seconds):', duration)
+        console.log('   Transcript length:', call.transcript?.length || 0)
+        console.log('   Has transcript:', !!call.transcript)
 
         const endResult = await supabaseAdmin
           .from('interview_sessions')
@@ -94,12 +101,17 @@ export async function POST(request: NextRequest) {
           console.error('❌ DB Error (call_ended):', endResult.error)
         } else {
           console.log('✅ Successfully updated session with transcript and duration')
+          console.log('   Updated rows:', endResult.count || 'unknown')
+          console.log('   Session marked as completed')
         }
         break
 
       case 'call_analyzed':
         console.log('📊 Processing call_analyzed event...')
-        console.log('Analysis data:', JSON.stringify(call.analysis, null, 2))
+        console.log('📋 Analysis data received:')
+        console.log('   Has analysis:', !!call.analysis)
+        console.log('   Analysis keys:', call.analysis ? Object.keys(call.analysis) : [])
+        console.log('   Full analysis:', JSON.stringify(call.analysis, null, 2))
         
         // Store AI analysis/feedback
         const analysisResult = await supabaseAdmin
@@ -113,6 +125,7 @@ export async function POST(request: NextRequest) {
           console.error('❌ DB Error (call_analyzed):', analysisResult.error)
         } else {
           console.log('✅ Successfully stored analysis data')
+          console.log('   Updated rows:', analysisResult.count || 'unknown')
         }
         break
 
@@ -120,14 +133,16 @@ export async function POST(request: NextRequest) {
         console.log('⚠️ Unhandled webhook event:', event)
     }
 
-    console.log('=== WEBHOOK PROCESSING COMPLETE ===\n')
+    console.log('✅ WEBHOOK PROCESSING COMPLETE')
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
     return NextResponse.json({ received: true })
   } catch (error: any) {
-    console.error('=== WEBHOOK ERROR ===')
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.error('💥 WEBHOOK ERROR')
     console.error('Error message:', error.message)
     console.error('Error stack:', error.stack)
     console.error('Full error:', error)
-    console.error('===================\n')
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
     
     return NextResponse.json(
       { error: 'Webhook processing failed', details: error.message },
