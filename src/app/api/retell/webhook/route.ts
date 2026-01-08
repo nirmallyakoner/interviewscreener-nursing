@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Use service role client for webhook (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +29,10 @@ export async function POST(request: NextRequest) {
 
     console.log('Retell webhook received:', event, call?.call_id)
 
-    const supabase = await createClient()
-
     switch (event) {
       case 'call_started':
         // Update session status
-        await supabase
+        await supabaseAdmin
           .from('interview_sessions')
           .update({
             status: 'started',
@@ -37,7 +47,7 @@ export async function POST(request: NextRequest) {
           ? Math.floor((call.end_timestamp - call.start_timestamp) / 1000)
           : null
 
-        await supabase
+        await supabaseAdmin
           .from('interview_sessions')
           .update({
             status: 'completed',
@@ -50,7 +60,7 @@ export async function POST(request: NextRequest) {
 
       case 'call_analyzed':
         // Store AI analysis/feedback
-        await supabase
+        await supabaseAdmin
           .from('interview_sessions')
           .update({
             analysis: call.analysis || null,

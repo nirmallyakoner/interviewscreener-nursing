@@ -27,6 +27,12 @@ CREATE POLICY "Users can insert own sessions"
   ON interview_sessions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+-- Service role can update sessions (for webhook)
+CREATE POLICY "Service role can update sessions"
+  ON interview_sessions FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
+
 -- Create indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_interview_sessions_user_id ON interview_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_interview_sessions_retell_call_id ON interview_sessions(retell_call_id);

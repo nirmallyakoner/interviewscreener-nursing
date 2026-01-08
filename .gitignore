@@ -27,3 +27,6 @@ yarn-error.log*
 
 # Ignore Vercel
 .vercel
+
+# Ignore documentation folder
+docs/

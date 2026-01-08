@@ -5,10 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
+import { CallAnalysisList } from '../components/CallAnalysisList'
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [interviewSessions, setInterviewSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
@@ -41,6 +43,18 @@ export default function ProfilePage() {
         setProfile(profileData)
         setName(profileData.name || '')
         setCourseType(profileData.course_type || 'BSc Nursing')
+      }
+
+      // Fetch all interview sessions with analysis
+      const { data: sessionsData } = await supabase
+        .from('interview_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('started_at', { ascending: false })
+
+      if (sessionsData) {
+        setInterviewSessions(sessionsData)
       }
     } catch (error) {
       console.error('Error loading profile:', error)
@@ -259,6 +273,12 @@ export default function ProfilePage() {
                 </div>
               </form>
             )}
+          </div>
+
+          {/* Interview History Section */}
+          <div id="interview-history" className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Interview History</h2>
+            <CallAnalysisList sessions={interviewSessions} showTranscript={true} />
           </div>
         </main>
       </div>

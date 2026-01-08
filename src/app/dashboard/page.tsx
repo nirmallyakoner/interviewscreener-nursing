@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StartInterviewButton } from '../components/StartInterviewButton'
 import { PricingCard } from '../components/PricingCard'
+import { CallAnalysisCard } from '../components/CallAnalysisCard'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -21,6 +22,17 @@ export default async function DashboardPage() {
     .select('subscription_type, interviews_remaining, interview_duration, course_type, name, email')
     .eq('id', user.id)
     .single()
+
+  // Fetch latest completed interview session with analysis
+  const { data: latestSession } = await supabase
+    .from('interview_sessions')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+    .not('analysis', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()  // Use maybeSingle() to avoid error when no data exists
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -92,6 +104,22 @@ export default async function DashboardPage() {
             />
           </div>
         </div>
+
+        {/* Latest Call Analysis Section */}
+        {latestSession && (
+          <div className="mt-12">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Latest Interview Analysis</h3>
+              <Link
+                href="/profile#interview-history"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg cursor-pointer"
+              >
+                See All Analyses
+              </Link>
+            </div>
+            <CallAnalysisCard session={latestSession} showTranscript={false} />
+          </div>
+        )}
 
         <div className="mt-12 bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
           <h3 className="text-xl font-bold text-gray-900 mb-4">
