@@ -98,11 +98,13 @@ export async function POST(request: NextRequest) {
           ended_at: new Date().toISOString(),
           actual_duration_seconds: duration,
           transcript: transcript,
+          recording_url: call.recording_url || null,
         }
         
         console.log('📝 Updating database with:', {
           ...updateData,
-          transcript: transcript ? `${transcript.length} chars` : 'null'
+          transcript: transcript ? `${transcript.length} chars` : 'null',
+          recording_url: call.recording_url ? 'present' : 'null'
         })
 
         const endResult = await supabaseAdmin

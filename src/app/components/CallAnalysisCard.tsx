@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react'
 
+// Retell's actual analysis structure
 interface CallAnalysis {
+  summary?: string              // Retell's call summary
+  successful?: boolean          // Whether the call was successful
+  call_summary?: string         // Detailed call summary
+  user_sentiment?: string       // User sentiment (Positive/Neutral/Negative)
+  in_voicemail?: boolean        // Whether call went to voicemail
+  custom_analysis_data?: any    // Any custom extraction data
+  
+  // Legacy fields (for backward compatibility)
   overall_score?: number
   overall_feedback?: string
   strengths?: string[]
@@ -21,6 +30,7 @@ interface InterviewSession {
   transcript?: string
   analysis?: CallAnalysis
   status: string
+  recording_url?: string  // URL to the call recording
 }
 
 interface CallAnalysisCardProps {
@@ -37,7 +47,8 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
       started_at: session.started_at,
       has_analysis: !!session.analysis,
       has_transcript: !!session.transcript,
-      status: session.status
+      status: session.status,
+      analysis_data: session.analysis // Log the actual analysis object
     })
   }, [session])
 
@@ -97,6 +108,21 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
     )
   }
 
+  // Get sentiment color
+  const getSentimentColor = (sentiment?: string) => {
+    if (!sentiment) return 'text-gray-600'
+    if (sentiment.toLowerCase() === 'positive') return 'text-green-600'
+    if (sentiment.toLowerCase() === 'negative') return 'text-red-600'
+    return 'text-yellow-600'
+  }
+
+  const getSentimentBg = (sentiment?: string) => {
+    if (!sentiment) return 'bg-gray-100'
+    if (sentiment.toLowerCase() === 'positive') return 'bg-green-100'
+    if (sentiment.toLowerCase() === 'negative') return 'bg-red-100'
+    return 'bg-yellow-100'
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
       {/* Header */}
@@ -109,20 +135,53 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
             Duration: {formatDuration(session.actual_duration_seconds)}
           </p>
         </div>
-        {analysis.overall_score !== undefined && (
-          <div className={`px-4 py-2 ${getScoreBgColor(analysis.overall_score)} rounded-lg`}>
-            <p className="text-xs text-gray-600 font-medium">Overall Score</p>
-            <p className={`text-2xl font-bold ${getScoreColor(analysis.overall_score)}`}>
-              {analysis.overall_score}%
-            </p>
-          </div>
-        )}
+        
+        {/* Status Badges */}
+        <div className="flex gap-2">
+          {/* Success Status */}
+          {analysis.successful !== undefined && (
+            <div className={`px-3 py-1 ${analysis.successful ? 'bg-green-100' : 'bg-red-100'} rounded-full`}>
+              <p className={`text-xs font-medium ${analysis.successful ? 'text-green-700' : 'text-red-700'}`}>
+                {analysis.successful ? '✓ Successful' : '✗ Needs Improvement'}
+              </p>
+            </div>
+          )}
+          
+          {/* User Sentiment */}
+          {analysis.user_sentiment && (
+            <div className={`px-3 py-1 ${getSentimentBg(analysis.user_sentiment)} rounded-full`}>
+              <p className={`text-xs font-medium ${getSentimentColor(analysis.user_sentiment)}`}>
+                {analysis.user_sentiment}
+              </p>
+            </div>
+          )}
+          
+          {/* Legacy Overall Score */}
+          {analysis.overall_score !== undefined && (
+            <div className={`px-4 py-2 ${getScoreBgColor(analysis.overall_score)} rounded-lg`}>
+              <p className="text-xs text-gray-600 font-medium">Overall Score</p>
+              <p className={`text-2xl font-bold ${getScoreColor(analysis.overall_score)}`}>
+                {analysis.overall_score}%
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Overall Feedback */}
+      {/* Call Summary (Retell's analysis) */}
+      {(analysis.summary || analysis.call_summary) && (
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Interview Summary</h4>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            {analysis.summary || analysis.call_summary}
+          </p>
+        </div>
+      )}
+
+      {/* Legacy Overall Feedback */}
       {analysis.overall_feedback && (
         <div className="mb-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">Summary</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Detailed Feedback</h4>
           <p className="text-gray-600 text-sm leading-relaxed">
             {analysis.overall_feedback}
           </p>
@@ -215,6 +274,31 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Call Recording */}
+      {session.recording_url && (
+        <div className="mb-6 border-t border-gray-200 pt-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <span className="text-purple-600 mr-2">🎙️</span>
+            Call Recording
+          </h4>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <audio 
+              controls 
+              className="w-full"
+              preload="metadata"
+              style={{ height: '40px' }}
+            >
+              <source src={session.recording_url} type="audio/wav" />
+              <source src={session.recording_url} type="audio/mpeg" />
+              Your browser does not support the audio element.
+            </audio>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Tip: Use this recording to review your responses and improve your interview skills
+            </p>
+          </div>
         </div>
       )}
 
