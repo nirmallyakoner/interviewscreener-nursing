@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         amount,
         currency,
         status: 'created',
+        receipt: receiptId,
       })
 
     if (dbError) {

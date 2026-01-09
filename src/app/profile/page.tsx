@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
 import { CallAnalysisList } from '../components/CallAnalysisList'
+import { TransactionList } from '../components/TransactionList'
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
@@ -287,6 +288,12 @@ export default function ProfilePage() {
                 </div>
               </form>
             )}
+          </div>
+
+          {/* Transaction History Section */}
+          <div id="transaction-history" className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Transaction History</h2>
+            <TransactionList />
           </div>
 
           {/* Interview History Section */}
