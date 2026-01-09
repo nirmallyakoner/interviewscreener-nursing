@@ -200,10 +200,10 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose }: Transa
       <span class="info-label">Receipt Date:</span>
       <span class="info-value">${receiptData.receiptDate}</span>
     </div>
-    <div class="info-row">
-      <span class="info-label">Status:</span>
-      <span class="status-badge">${receiptData.status.toUpperCase()}</span>
-    </div>
+      <div class="info-row">
+        <span class="info-label">Status:</span>
+        <span class="status-badge">${receiptData.status === 'created' ? 'PENDING' : receiptData.status.toUpperCase()}</span>
+      </div>
   </div>
 
   <div class="section">
@@ -367,53 +367,81 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose }: Transa
             </div>
           </div>
 
-          {/* Payment IDs */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 text-lg">Payment Information</h3>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">Payment ID</p>
-                  <p className="font-mono text-sm text-gray-900">{transaction.razorpay_payment_id}</p>
+          {/* Payment Information */}
+          {transaction.razorpay_payment_id ? (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900 text-lg">Payment Information</h3>
+              
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Payment ID</p>
+                    <p className="font-mono text-sm text-gray-900">{transaction.razorpay_payment_id}</p>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(transaction.razorpay_payment_id, 'Payment ID')}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Copy
+                  </button>
                 </div>
-                <button
-                  onClick={() => copyToClipboard(transaction.razorpay_payment_id, 'Payment ID')}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  Copy
-                </button>
               </div>
-            </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">Order ID</p>
-                  <p className="font-mono text-sm text-gray-900">{transaction.razorpay_order_id}</p>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Order ID</p>
+                    <p className="font-mono text-sm text-gray-900">{transaction.razorpay_order_id}</p>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(transaction.razorpay_order_id, 'Order ID')}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Copy
+                  </button>
                 </div>
-                <button
-                  onClick={() => copyToClipboard(transaction.razorpay_order_id, 'Order ID')}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  Copy
-                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6">
+              <div className="flex items-start gap-3">
+                <span className="text-3xl">⏳</span>
+                <div>
+                  <p className="text-yellow-900 font-bold text-lg mb-1">Payment Pending</p>
+                  <p className="text-yellow-800 text-sm mb-3">
+                    This order was created but payment has not been completed yet.
+                  </p>
+                  <div className="bg-white rounded-lg p-3 border border-yellow-300">
+                    <p className="text-sm text-gray-600 mb-1">Order ID</p>
+                    <div className="flex justify-between items-center">
+                      <p className="font-mono text-sm text-gray-900">{transaction.razorpay_order_id}</p>
+                      <button
+                        onClick={() => copyToClipboard(transaction.razorpay_order_id, 'Order ID')}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Payment Method Details */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 text-lg">Payment Method</h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-2">
-                {transaction.payment_method?.toUpperCase() || 'N/A'}
-              </p>
-              <div className="text-sm text-gray-900">
-                {getPaymentMethodDetails()}
+          {/* Payment Method Details - Only show if payment completed */}
+          {transaction.payment_method && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900 text-lg">Payment Method</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  {transaction.payment_method?.toUpperCase() || 'N/A'}
+                </p>
+                <div className="text-sm text-gray-900">
+                  {getPaymentMethodDetails()}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Transaction Details */}
           <div className="space-y-3">

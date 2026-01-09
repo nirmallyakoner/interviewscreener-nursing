@@ -38,7 +38,12 @@ interface TransactionCardProps {
 }
 
 export function TransactionCard({ transaction, onClick }: TransactionCardProps) {
-  const getPaymentMethodIcon = (method: string) => {
+  const getPaymentMethodIcon = (method: string, status: string) => {
+    // For pending payments
+    if (status === 'created' && !method) {
+      return '⏳'
+    }
+    
     switch (method) {
       case 'card':
         return '💳'
@@ -53,7 +58,12 @@ export function TransactionCard({ transaction, onClick }: TransactionCardProps) 
     }
   }
 
-  const getPaymentMethodDisplay = (method: string, details: PaymentMethodDetails | null | undefined) => {
+  const getPaymentMethodDisplay = (method: string, details: PaymentMethodDetails | null | undefined, status: string) => {
+    // For pending payments, show meaningful message
+    if (status === 'created' && !method) {
+      return 'Payment Pending'
+    }
+    
     if (!method) return 'N/A'
     
     const safeDetails = details || {}
@@ -125,10 +135,10 @@ export function TransactionCard({ transaction, onClick }: TransactionCardProps) 
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">{getPaymentMethodIcon(transaction.payment_method)}</span>
+            <span className="text-2xl">{getPaymentMethodIcon(transaction.payment_method, transaction.status)}</span>
             <div>
               <p className="font-semibold text-gray-900">
-                {getPaymentMethodDisplay(transaction.payment_method, transaction.payment_method_details)}
+                {getPaymentMethodDisplay(transaction.payment_method, transaction.payment_method_details, transaction.status)}
               </p>
               <p className="text-sm text-gray-500">{formatDate(transaction.created_at)}</p>
             </div>
