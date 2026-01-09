@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +46,19 @@ export async function POST(request: NextRequest) {
         method: payment.method
       })
 
-      const supabase = await createClient()
+      // Use service role client for webhook (no user auth)
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+
+      console.log('[Webhook] Using service role client for database access')
 
       // Get payment record to find user_id
       const { data: paymentRecord, error: fetchError } = await supabase
@@ -56,9 +68,11 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (fetchError || !paymentRecord) {
-        console.error('[Webhook] Payment record not found:', payment.order_id)
+        console.error('[Webhook] Payment record not found:', payment.order_id, fetchError)
         return NextResponse.json({ error: 'Payment record not found' }, { status: 404 })
       }
+
+      console.log('[Webhook] Found payment record for user:', paymentRecord.user_id)
 
       // Check if already processed
       if (paymentRecord.status === 'paid') {
