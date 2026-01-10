@@ -74,11 +74,11 @@ export default function PricingPage() {
                <ul className="space-y-4 mb-8">
                  <li className="flex items-center gap-3 text-slate-300">
                     <div className="p-1 rounded-full bg-slate-800"><Check className="w-4 h-4 text-teal-500" /></div>
-                    <span>3 Mock Interviews</span>
+                    <span>50 Credits (1 interview)</span>
                  </li>
                  <li className="flex items-center gap-3 text-slate-300">
                     <div className="p-1 rounded-full bg-slate-800"><Check className="w-4 h-4 text-teal-500" /></div>
-                    <span>Standard 5-min Duration</span>
+                    <span>5-min Duration</span>
                  </li>
                  <li className="flex items-center gap-3 text-slate-300">
                     <div className="p-1 rounded-full bg-slate-800"><Check className="w-4 h-4 text-teal-500" /></div>
@@ -121,11 +121,11 @@ export default function PricingPage() {
                    <ul className="space-y-4 mb-8">
                      <li className="flex items-center gap-3 text-white font-medium">
                         <div className="p-1 bg-teal-500/20 rounded-full"><Zap className="w-4 h-4 text-teal-400" /></div>
-                        <span>2 Premium Interviews</span>
+                        <span>160 Credits / pack</span>
                      </li>
                      <li className="flex items-center gap-3 text-white font-medium">
                         <div className="p-1 bg-teal-500/20 rounded-full"><Zap className="w-4 h-4 text-teal-400" /></div>
-                        <span>Extended 8-min Duration</span>
+                        <span>Approx. 2 long interviews (8-min)</span>
                      </li>
                      <li className="flex items-center gap-3 text-white font-medium">
                         <div className="p-1 bg-teal-500/20 rounded-full"><Zap className="w-4 h-4 text-teal-400" /></div>
@@ -153,8 +153,12 @@ export default function PricingPage() {
              
              <div className="space-y-2">
                 <FaqItem 
-                   question="What happens when I run out of interviews?" 
-                   answer="You can simply purchase another Premium Pack. There is no limit to how many packs you can buy. Each pack adds 2 more premium interviews to your account instantly."
+                   question="How does the credit system work?" 
+                   answer="We use a fair, time-based credit system. 1 minute of interview = 10 credits. You are only charged for the exact duration you use. If you end early, unused credits are refunded automatically!"
+                />
+                <FaqItem 
+                   question="What happens when I run out of credits?" 
+                   answer="You can simply purchase another Premium Pack. Each pack adds 160 credits to your account instantly, which is enough for about 2 long (8-min) interviews or more shorter ones."
                 />
                 <FaqItem 
                    question="Do my interview credits expire?" 

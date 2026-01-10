@@ -17,11 +17,19 @@ export default async function DashboardPage() {
   }
 
   // Fetch user profile with subscription fields
+  // Try to fetch new credit columns, fall back to old system if they don't exist
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_type, interviews_remaining, interview_duration, course_type, name, email')
+    .select('subscription_type, credits, blocked_credits, interviews_remaining, interview_duration, course_type, name, email')
     .eq('id', user.id)
     .single()
+
+  // Calculate available credits (backward compatible)
+  // If credits column exists, use it; otherwise fall back to interviews_remaining
+  const hasNewCreditSystem = profile?.credits !== undefined && profile?.credits !== null
+  const availableCredits = hasNewCreditSystem 
+    ? (profile.credits || 0) - (profile.blocked_credits || 0)
+    : (profile?.interviews_remaining || 0)
 
   // Fetch latest completed interview session with analysis
   const { data: latestSession } = await supabase
@@ -68,9 +76,12 @@ export default async function DashboardPage() {
             <div className="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 border border-teal-500/20 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Zap className="w-4 h-4 text-teal-400" />
-                <span className="text-xs text-slate-400 font-medium">Credits</span>
+                <span className="text-xs text-slate-400 font-medium">Available</span>
               </div>
-              <p className="text-2xl font-bold text-white">{profile?.interviews_remaining || 0}</p>
+              <p className="text-2xl font-bold text-white">{availableCredits}</p>
+              {hasNewCreditSystem && (profile?.blocked_credits || 0) > 0 && (
+                <p className="text-xs text-amber-400 mt-1">({profile?.blocked_credits} blocked)</p>
+              )}
             </div>
 
             {/* Course */}
@@ -124,10 +135,10 @@ export default async function DashboardPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-6">
-                <StartInterviewButton hasCredits={(profile?.interviews_remaining || 0) > 0} />
+                <StartInterviewButton hasCredits={availableCredits > 0} />
                 <div className="flex items-center gap-2 text-teal-50">
                   <div className="w-2 h-2 rounded-full bg-teal-200 animate-pulse"></div>
-                  <span className="text-sm font-medium">{profile?.interviews_remaining} credits available</span>
+                  <span className="text-sm font-medium">{availableCredits} credits available</span>
                 </div>
               </div>
             </div>
@@ -196,19 +207,39 @@ export default async function DashboardPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-3 border-b border-slate-800">
-                <span className="text-sm text-slate-400">Interview Credits</span>
-                <span className="text-lg font-bold text-white">{profile?.interviews_remaining || 0}</span>
-              </div>
+              {hasNewCreditSystem ? (
+                <>
+                  <div className="flex justify-between items-center py-3 border-b border-slate-800">
+                    <span className="text-sm text-slate-400">Total Credits</span>
+                    <span className="text-lg font-bold text-white">{profile?.credits || 0}</span>
+                  </div>
+                  {(profile?.blocked_credits || 0) > 0 && (
+                    <div className="flex justify-between items-center py-3 border-b border-slate-800">
+                      <span className="text-sm text-slate-400">Blocked</span>
+                      <span className="font-medium text-amber-400">-{profile?.blocked_credits}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-3 border-b border-slate-800">
+                    <span className="text-sm text-slate-400">Available</span>
+                    <span className="text-lg font-bold text-teal-400">{availableCredits}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center py-3 border-b border-slate-800">
+                  <span className="text-sm text-slate-400">Interviews Remaining</span>
+                  <span className="text-lg font-bold text-white">{availableCredits}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-3 border-b border-slate-800">
                 <span className="text-sm text-slate-400">Session Length</span>
                 <span className="font-medium text-white">{profile?.interview_duration || 5} min</span>
               </div>
             </div>
 
-            {(profile?.interviews_remaining || 0) <= 2 && (
+            {availableCredits <= 30 && (
               <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <p className="text-xs text-amber-400 font-medium mb-3">⚠️ Running low on credits</p>
+                <p className="text-xs text-slate-400 mb-3">You have {availableCredits} credits ({Math.floor(availableCredits / 10)} minutes)</p>
                 <Link
                   href="/billing"
                   className="block w-full py-2.5 text-center rounded-lg bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400 transition-colors"
@@ -218,7 +249,7 @@ export default async function DashboardPage() {
               </div>
             )}
 
-            {(profile?.interviews_remaining || 0) > 2 && (
+            {availableCredits > 30 && (
               <Link
                 href="/billing"
                 className="block w-full mt-6 py-3 text-center rounded-xl border border-slate-700 text-slate-300 font-medium text-sm hover:bg-slate-800 transition-colors"

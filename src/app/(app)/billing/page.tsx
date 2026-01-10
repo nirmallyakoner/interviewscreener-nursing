@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
+import { RazorpayCheckout } from '../../../components/RazorpayCheckout'
 import Link from 'next/link'
 import { TransactionList } from '../../../components/TransactionList'
 import { CreditCard, Zap, Calendar, ArrowRight } from 'lucide-react'
@@ -39,6 +40,11 @@ export default function BillingPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePaymentSuccess = () => {
+    toast.success('Payment successful! Credits added to your account.')
+    loadProfile() // Reload profile to show updated credits
   }
 
   if (loading) {
@@ -101,8 +107,8 @@ export default function BillingPage() {
               </div>
 
               <div className="flex justify-between items-center py-3 border-b border-slate-800">
-                <span className="text-slate-400">Interview Credits</span>
-                <span className="font-bold text-white text-xl">{profile?.interviews_remaining || 0}</span>
+                <span className="text-slate-400">Available Credits</span>
+                <span className="font-bold text-white text-xl">{profile?.credits || profile?.interviews_remaining || 0}</span>
               </div>
 
               <div className="flex justify-between items-center py-3 border-b border-slate-800">
@@ -135,17 +141,17 @@ export default function BillingPage() {
           <div className="bg-gradient-to-br from-teal-600 to-emerald-600 rounded-2xl p-6 text-white">
             <div className="mb-4">
               <Zap className="w-10 h-10 mb-3" />
-              <h3 className="text-xl font-bold mb-2">Need More Credits?</h3>
-              <p className="text-teal-50 text-sm">
-                Purchase interview credits to continue practicing and improving your skills.
+              <h3 className="text-xl font-bold mb-2">Buy Interview Credits</h3>
+              <p className="text-teal-50 text-sm mb-4">
+                Get 160 credits for ₹149 - Perfect for 2 long interviews (8 minutes each)
               </p>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4">
+                <p className="text-xs text-teal-100 mb-1">Premium Pack</p>
+                <p className="text-2xl font-bold">₹149</p>
+                <p className="text-xs text-teal-100">160 Credits</p>
+              </div>
             </div>
-            <Link 
-              href="/pricing" 
-              className="flex items-center justify-center gap-2 w-full py-3 bg-white text-slate-950 rounded-xl font-bold hover:bg-teal-50 transition-colors"
-            >
-              View Pricing <ArrowRight className="w-4 h-4" />
-            </Link>
+            <RazorpayCheckout amount={14900} onSuccess={handlePaymentSuccess} />
           </div>
 
           {/* Help Card */}

@@ -21,6 +21,20 @@ export default function InterviewPage() {
     checkCredits()
   }, [])
 
+  // Read custom duration synchronously on component mount
+  const getCustomDuration = (): number | null => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const durationParam = params.get('duration')
+    if (durationParam) {
+      const duration = parseInt(durationParam, 10)
+      if (!isNaN(duration) && duration > 0 && duration <= 10) {
+        return duration
+      }
+    }
+    return null
+  }
+
   const checkCredits = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -32,7 +46,7 @@ export default function InterviewPage() {
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('interviews_remaining, interview_duration, subscription_type, course_type')
+        .select('interviews_remaining, interview_duration, subscription_type, course_type, credits, blocked_credits')
         .eq('id', user.id)
         .single()
 
@@ -42,8 +56,15 @@ export default function InterviewPage() {
         return
       }
 
-      if (profileData.interviews_remaining <= 0) {
-        toast.error('No interviews remaining. Please upgrade!')
+      // Calculate available credits
+      const availableCredits = (profileData.credits || 0) - (profileData.blocked_credits || 0)
+      
+      // Check if user has enough credits for at least 30 seconds (5 credits)
+      // Use backward compatibility with interviews_remaining if credits system not fully active
+      const hasAccess = availableCredits > 5 || profileData.interviews_remaining > 0
+
+      if (!hasAccess) {
+        toast.error('Not enough credits. Please upgrade!')
         router.push('/billing')
         return
       }
@@ -81,6 +102,9 @@ export default function InterviewPage() {
       </div>
     )
   }
+
+  const available = profile ? (profile.credits || 0) - (profile.blocked_credits || 0) : 0
+  const showCredits = profile?.credits !== undefined && profile?.credits !== null
 
   return (
     <>
@@ -122,14 +146,14 @@ export default function InterviewPage() {
                   <Clock className="w-4 h-4 text-teal-100" />
                   <span className="text-xs text-teal-100 font-medium">Duration</span>
                 </div>
-                <p className="text-white font-bold text-sm">{profile?.interview_duration} minutes</p>
+                <p className="text-white font-bold text-sm">{getCustomDuration() || profile?.interview_duration} minutes</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-teal-100" />
                   <span className="text-xs text-teal-100 font-medium">Credits Left</span>
                 </div>
-                <p className="text-white font-bold text-sm">{profile?.interviews_remaining}</p>
+                <p className="text-white font-bold text-sm">{showCredits ? available : profile?.interviews_remaining}</p>
               </div>
             </div>
           </div>
@@ -239,12 +263,12 @@ export default function InterviewPage() {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
                   <Clock className="w-4 h-4 text-amber-400" />
                   <span className="text-sm text-amber-400 font-medium">
-                    Interview Duration: {profile.interview_duration} minutes
+                    Interview Duration: {getCustomDuration() || profile.interview_duration} minutes
                   </span>
                 </div>
               </div>
               <VoiceInterview
-                durationMinutes={profile.interview_duration}
+                durationMinutes={getCustomDuration() || profile.interview_duration}
                 onComplete={handleInterviewComplete}
               />
             </div>

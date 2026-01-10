@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       
       // Product Info
       productDescription: 'Premium Subscription - Interview Credits',
-      interviewsAdded: payment.interviews_added || 2,
+      creditsAdded: payment.credits_added || payment.interviews_added || 160,
       
       // Status
       status: payment.status || 'N/A',

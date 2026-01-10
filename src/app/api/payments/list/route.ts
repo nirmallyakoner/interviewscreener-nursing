@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       fee: payment.fee,
       tax: payment.tax,
       receipt: payment.receipt,
-      interviews_added: payment.interviews_added,
+      credits_added: payment.credits_added || payment.interviews_added || 160,
       created_at: payment.created_at,
       updated_at: payment.updated_at,
     }))

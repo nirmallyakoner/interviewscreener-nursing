@@ -26,12 +26,18 @@ export function AppHeader({ onToggleSidebar, isSidebarOpen }: AppHeaderProps) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('interviews_remaining, name')
+        .select('credits, blocked_credits, interviews_remaining, name')
         .eq('id', user.id)
         .single()
 
       if (profile) {
-        setCredits(profile.interviews_remaining || 0)
+        // Calculate available credits (backward compatible)
+        const hasNewCreditSystem = profile.credits !== undefined && profile.credits !== null
+        const availableCredits = hasNewCreditSystem
+          ? (profile.credits || 0) - (profile.blocked_credits || 0)
+          : (profile.interviews_remaining || 0)
+        
+        setCredits(availableCredits)
         setUserName(profile.name || 'User')
       }
     } catch (error) {

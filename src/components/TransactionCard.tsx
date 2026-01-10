@@ -30,7 +30,7 @@ interface Transaction {
   fee: number
   tax: number
   receipt: string
-  interviews_added: number
+  credits_added: number
   created_at: string
   updated_at: string
 }
@@ -128,7 +128,7 @@ export function TransactionCard({ transaction, onClick }: TransactionCardProps) 
     <div class="section">
       <div class="section-title">Transaction Details</div>
       <div class="info-row"><span class="info-label">Product:</span><span class="info-value">${receiptData.productDescription}</span></div>
-      <div class="info-row"><span class="info-label">Interviews Added:</span><span class="info-value">${receiptData.interviewsAdded}</span></div>
+      <div class="info-row"><span class="info-label">Credits Added:</span><span class="info-value">${receiptData.creditsAdded}</span></div>
       <div class="info-row"><span class="info-label">Amount:</span><span class="info-value">${receiptData.currency} ${(receiptData.amount / 100).toFixed(2)}</span></div>
       <div class="total-row">
         <div class="info-row" style="border: none; padding: 0;">
@@ -273,9 +273,9 @@ export function TransactionCard({ transaction, onClick }: TransactionCardProps) 
 
         <div className="flex justify-between items-center pt-3 border-t border-slate-700/50 gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Interviews:</span>
+            <span className="text-xs text-slate-400">Credits:</span>
             <span className="px-2.5 py-1 bg-teal-500/20 border border-teal-500/30 text-teal-400 rounded-full text-xs font-bold">
-              +{transaction.interviews_added}
+              +{transaction.credits_added}
             </span>
           </div>
           <div className="flex items-center gap-2">

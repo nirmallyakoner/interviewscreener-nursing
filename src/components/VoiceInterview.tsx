@@ -25,6 +25,13 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
   const [isMobile, setIsMobile] = useState(false)
   const [countdown, setCountdown] = useState(12) // 12 second warning timer
   const [showWarning, setShowWarning] = useState(false)
+  const [creditError, setCreditError] = useState<{
+    available: number
+    needed: number
+    suggested: number[]
+    maxDuration: number
+    message: string
+  } | null>(null)
   
   const retellWebClientRef = useRef<any>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -82,10 +89,25 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
     try {
       const response = await fetch('/api/retell/create-call', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: durationMinutes }),
       })
 
       if (!response.ok) {
         const error = await response.json()
+        
+        // Handle insufficient credits specially
+        if (response.status === 403 && error.suggested_durations) {
+          setCreditError({
+            available: error.available_credits,
+            needed: error.credits_needed,
+            suggested: error.suggested_durations,
+            maxDuration: error.max_duration,
+            message: error.message
+          })
+          return
+        }
+        
         throw new Error(error.error || 'Failed to create call')
       }
 
@@ -319,8 +341,82 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
 
   return (
     <div className="space-y-6">
+      {/* Insufficient Credits UI */}
+      {creditError && (
+        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-500/30 rounded-2xl p-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-500/30">
+              <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Not Enough Credits</h3>
+            <p className="text-amber-300/90 text-sm mb-4">{creditError.message}</p>
+            
+            <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400 mb-1">Available Credits</p>
+                  <p className="text-2xl font-bold text-teal-400">{creditError.available}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 mb-1">Credits Needed</p>
+                  <p className="text-2xl font-bold text-amber-400">{creditError.needed}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {creditError.suggested.length > 0 ? (
+            <>
+              <h4 className="text-white font-bold mb-3 text-center">✨ Try These Durations Instead:</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                {creditError.suggested.map((duration) => (
+                  <button
+                    key={duration}
+                    onClick={() => {
+                      toast.success(`Redirecting to ${duration}-minute interview...`)
+                      setTimeout(() => window.location.href = `/interview?duration=${duration}`, 1000)
+                    }}
+                    className="p-4 bg-gradient-to-br from-teal-500/20 to-emerald-500/20 border-2 border-teal-500/30 rounded-xl hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/20 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <p className="text-white font-bold text-lg">{duration} Minutes</p>
+                        <p className="text-teal-300 text-xs">~{duration * 10} credits</p>
+                      </div>
+                      <svg className="w-5 h-5 text-teal-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <div className="border-t border-amber-500/20 pt-4">
+            <p className="text-amber-300/70 text-sm text-center mb-4">Or purchase more credits to continue</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/billing')}
+                className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl font-bold hover:from-teal-600 hover:to-emerald-700 transition-all cursor-pointer shadow-lg shadow-teal-500/20"
+              >
+                Buy Credits
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-6 py-3 border border-slate-700 text-slate-300 hover:text-white rounded-xl font-semibold hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Warning */}
-      {isMobile && callStatus === 'ready' && (
+      {isMobile && callStatus === 'ready' && !creditError && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <Smartphone className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -335,7 +431,7 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
       )}
 
       {/* Start Interview Button (shown when ready) */}
-      {callStatus === 'ready' && (
+      {callStatus === 'ready' && !creditError && (
         <div className="text-center py-12">
           {/* Warning Message - Shows after 12 seconds */}
           {showWarning && (

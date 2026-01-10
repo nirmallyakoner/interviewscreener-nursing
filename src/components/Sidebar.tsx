@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, User, Mic, FileText, CreditCard, LogOut, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { RazorpayCheckout } from './RazorpayCheckout'
 
 interface SidebarProps {
   isOpen: boolean
@@ -98,6 +100,42 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Link>
             )
           })}
+
+          {/* Catchy Purchase Banner */}
+          <div className="mt-4 relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-600 p-4 group cursor-pointer hover:scale-[1.02] transition-transform">
+            {/* Animated shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            
+            <div className="relative z-10">
+              {/* Pulsing badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative">
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping absolute"></div>
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                </div>
+                <span className="text-xs font-bold text-yellow-300 uppercase tracking-wide">Limited Offer</span>
+              </div>
+              
+              {/* Main message */}
+              <h3 className="text-white font-bold text-base mb-1">
+                Get 160 Credits
+              </h3>
+              <p className="text-teal-50 text-xs mb-3">
+                Just ₹149 • 2 Full Interviews
+              </p>
+              
+              {/* CTA Button - Direct Razorpay */}
+              <RazorpayCheckout 
+                amount={14900}
+                buttonText="Buy Now →"
+                className="w-full bg-white text-teal-700 text-center py-2 px-3 rounded-lg font-bold text-sm hover:bg-yellow-300 transition-colors shadow-lg cursor-pointer"
+                onSuccess={() => {
+                  toast.success('Credits added! Refresh to see updated balance.')
+                  window.location.reload()
+                }} 
+              />
+            </div>
+          </div>
         </nav>
 
         {/* Sign Out */}

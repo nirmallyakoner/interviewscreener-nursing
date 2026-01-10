@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       // Get current profile to calculate new credits
       const { data: profile, error: profileFetchError } = await supabase
         .from('profiles')
-        .select('interviews_remaining, total_interviews_purchased')
+        .select('credits, blocked_credits, total_interviews_purchased')
         .eq('id', paymentRecord.user_id)
         .single()
 
@@ -140,28 +140,59 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
       }
 
-      // Credit interviews to user account
+      // Calculate credits for plan (₹149 = 160 credits for 2×8min interviews)
+      const planCredits = 160
+
+      // Import credit function
+      const { addCredits } = await import('@/lib/creditTransactions')
+      
+      // Add credits using atomic function
+      const creditResult = await addCredits(
+        supabase,
+        paymentRecord.user_id,
+        planCredits,
+        payment.id
+      )
+
+      if (!creditResult.success) {
+        console.error('[Webhook] Error adding credits:', creditResult.error)
+        return NextResponse.json({ error: 'Failed to add credits' }, { status: 500 })
+      }
+
+      // Update profile with subscription details
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           subscription_type: 'paid',
           interview_duration: 8,
-          interviews_remaining: (profile.interviews_remaining || 0) + 2,
           total_interviews_purchased: (profile.total_interviews_purchased || 0) + 2,
         })
         .eq('id', paymentRecord.user_id)
 
       if (profileError) {
         console.error('[Webhook] Error updating profile:', profileError)
-        return NextResponse.json({ error: 'Failed to credit interviews' }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 })
       }
 
-      console.log('[Webhook] Interviews credited successfully to user:', paymentRecord.user_id)
+      // Update payment record with credits added
+      await supabase
+        .from('payments')
+        .update({
+          credits_added: planCredits
+        })
+        .eq('razorpay_order_id', payment.order_id)
+
+      console.log('[Webhook] Credits added successfully:', {
+        user_id: paymentRecord.user_id,
+        credits_added: planCredits,
+        new_balance: creditResult.new_balance
+      })
 
       return NextResponse.json({ 
         success: true,
-        message: 'Payment verified and interviews credited',
-        payment_id: payment.id
+        message: 'Payment verified and credits added',
+        payment_id: payment.id,
+        credits_added: planCredits
       })
     }
 

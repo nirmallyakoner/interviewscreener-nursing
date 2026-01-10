@@ -124,6 +124,30 @@ export async function POST(request: NextRequest) {
           console.log('   Updated data:', JSON.stringify(endResult.data, null, 2))
           console.log('   Session marked as completed')
         }
+
+        // Process credit deduction
+        if (duration !== null && duration > 0) {
+          console.log('💳 Processing credit deduction...')
+          
+          // Import credit functions dynamically to avoid circular dependencies
+          const { processInterviewCompletion } = await import('@/lib/creditTransactions')
+          
+          const creditResult = await processInterviewCompletion(
+            supabaseAdmin,
+            call.call_id,
+            duration
+          )
+
+          if (creditResult.success) {
+            console.log('✅ Credits processed successfully:')
+            console.log('   Credits deducted:', creditResult.credits_deducted)
+            console.log('   Credits refunded:', creditResult.credits_refunded)
+          } else {
+            console.error('❌ Credit processing failed:', creditResult.error)
+          }
+        } else {
+          console.log('⚠️ Skipping credit deduction (no duration or zero duration)')
+        }
         break
 
       case 'call_analyzed':

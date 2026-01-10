@@ -13,9 +13,11 @@ declare global {
 interface RazorpayCheckoutProps {
   amount: number
   onSuccess?: () => void
+  buttonText?: string
+  className?: string
 }
 
-export function RazorpayCheckout({ amount, onSuccess }: RazorpayCheckoutProps) {
+export function RazorpayCheckout({ amount, onSuccess, buttonText, className }: RazorpayCheckoutProps) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -123,9 +125,9 @@ export function RazorpayCheckout({ amount, onSuccess }: RazorpayCheckoutProps) {
     <button
       onClick={handlePayment}
       disabled={loading}
-      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl cursor-pointer text-lg"
+      className={className || "w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl cursor-pointer text-lg"}
     >
-      {loading ? 'Processing...' : `Upgrade to Premium - ₹${amount / 100}`}
+      {loading ? 'Processing...' : (buttonText || `Upgrade to Premium - ₹${amount / 100}`)}
     </button>
   )
 }

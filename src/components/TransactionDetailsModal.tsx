@@ -30,7 +30,7 @@ interface Transaction {
   fee: number
   tax: number
   receipt: string
-  interviews_added: number
+  credits_added: number
   created_at: string
   updated_at: string
 }
@@ -276,8 +276,8 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose }: Transa
         <span class="info-value">${receiptData.productDescription}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Interviews Added:</span>
-        <span class="info-value">${receiptData.interviewsAdded}</span>
+        <span class="info-label">Credits Added:</span>
+        <span class="info-value">${receiptData.creditsAdded}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Amount:</span>
@@ -474,8 +474,8 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose }: Transa
             <h3 className="font-semibold text-white text-lg">Transaction Details</h3>
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
               <div className="flex justify-between">
-                <span className="text-slate-400">Interviews Added</span>
-                <span className="font-semibold text-teal-400">+{transaction.interviews_added}</span>
+                <span className="text-slate-400">Credits Added</span>
+                <span className="font-semibold text-teal-400">+{transaction.credits_added}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Transaction Date</span>

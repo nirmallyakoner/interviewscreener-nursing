@@ -29,7 +29,7 @@ interface Transaction {
   fee: number
   tax: number
   receipt: string
-  interviews_added: number
+  credits_added: number
   created_at: string
   updated_at: string
 }
