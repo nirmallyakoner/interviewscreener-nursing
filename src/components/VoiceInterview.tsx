@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { RetellWebClient } from 'retell-client-js-sdk'
 import { Mic, MicOff, Phone, User, Bot, Clock, Play, Smartphone } from 'lucide-react'
+import { analytics } from '@/lib/analytics'
 
 interface VoiceInterviewProps {
   durationMinutes: number
@@ -148,6 +149,9 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
         setIsStarting(false)
         startTimer()
         toast.success('Interview started')
+        
+        // Track interview started
+        analytics.trackInterviewStarted('Nursing', durationMinutes)
       })
 
       retellWebClient.on('call_ended', () => {
@@ -272,6 +276,9 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
   const handleCallEnd = () => {
     setCallStatus('ended')
     toast.success('Interview completed')
+    
+    // Track interview completion
+    analytics.trackInterviewCompleted('Nursing', durationMinutes)
     
     setTimeout(() => {
       onComplete()

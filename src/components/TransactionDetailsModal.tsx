@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Download } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { analytics } from '@/lib/analytics'
 
 interface PaymentMethodDetails {
   last4?: string

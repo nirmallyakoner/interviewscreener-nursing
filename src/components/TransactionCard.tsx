@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CreditCard, Smartphone, Building2, Wallet, Clock, CheckCircle2, XCircle, ArrowRight, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { analytics } from '@/lib/analytics'
 
 interface PaymentMethodDetails {
   last4?: string
@@ -66,6 +67,9 @@ export function TransactionCard({ transaction, onClick }: TransactionCardProps) 
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      
+      // Track receipt download
+      analytics.trackDownloadReceipt(transaction.razorpay_payment_id || transaction.razorpay_order_id)
       
       toast.success('Receipt downloaded successfully!')
     } catch (error) {

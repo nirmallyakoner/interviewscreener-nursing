@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Mic, Volume2, CheckCircle2, AlertCircle, Waves, Play } from 'lucide-react'
+import { analytics } from '@/lib/analytics'
 
 interface AudioTestProps {
   onTestComplete: () => void
@@ -312,7 +313,10 @@ export function AudioTest({ onTestComplete }: AudioTestProps) {
 
       {/* Continue Button */}
       <button
-        onClick={onTestComplete}
+        onClick={() => {
+          analytics.trackAudioTestCompleted()
+          onTestComplete()
+        }}
         disabled={!canContinue}
         className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
           canContinue
