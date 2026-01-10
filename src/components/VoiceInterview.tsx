@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { RetellWebClient } from 'retell-client-js-sdk'
-import { Mic, MicOff, Phone, User, Bot, Clock } from 'lucide-react'
+import { Mic, MicOff, Phone, User, Bot, Clock, Play, Smartphone } from 'lucide-react'
 
 interface VoiceInterviewProps {
   durationMinutes: number
@@ -12,15 +12,22 @@ interface VoiceInterviewProps {
 }
 
 export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewProps) {
-  const [callStatus, setCallStatus] = useState<'connecting' | 'active' | 'ended'>('connecting')
+  const [callStatus, setCallStatus] = useState<'ready' | 'connecting' | 'active' | 'ended'>('ready')
   const [timeRemaining, setTimeRemaining] = useState(durationMinutes * 60)
   const [isMuted, setIsMuted] = useState(false)
   const [callId, setCallId] = useState<string | null>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [currentAgentMessage, setCurrentAgentMessage] = useState('')
   const [currentUserMessage, setCurrentUserMessage] = useState('')
+  const [isReady, setIsReady] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [countdown, setCountdown] = useState(12) // 12 second warning timer
+  const [showWarning, setShowWarning] = useState(false)
   
   const retellWebClientRef = useRef<any>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInitializedRef = useRef(false)
   const router = useRouter()
 
@@ -28,11 +35,19 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
     if (isInitializedRef.current) return
     isInitializedRef.current = true
     
-    initializeCall()
+    // Detect mobile
+    const checkMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    setIsMobile(checkMobile)
+    
+    // Only prepare the call, don't start it
+    prepareCall()
 
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current)
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current)
       }
       if (retellWebClientRef.current) {
         retellWebClientRef.current.stopCall()
@@ -40,7 +55,29 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
     }
   }, [])
 
-  const initializeCall = async () => {
+  // Start countdown timer when ready (warning only, no auto-start)
+  useEffect(() => {
+    if (isReady && callStatus === 'ready' && countdown > 0) {
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            // Show warning when countdown reaches 0
+            setShowWarning(true)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => {
+        if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current)
+        }
+      }
+    }
+  }, [isReady, callStatus, countdown])
+
+  const prepareCall = async () => {
     try {
       const response = await fetch('/api/retell/create-call', {
         method: 'POST',
@@ -53,13 +90,62 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
 
       const data = await response.json()
       setCallId(data.call_id)
+      setAccessToken(data.access_token)
+      setIsReady(true)
+    } catch (error) {
+      console.error('Prepare call error:', error)
+      toast.error('Failed to prepare interview')
+      router.push('/dashboard')
+    }
+  }
 
+  const handleStartInterview = async () => {
+    if (!accessToken) {
+      toast.error('Interview not ready. Please try again.')
+      return
+    }
+
+    // Clear countdown timer if user clicks manually
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current)
+    }
+
+    setShowWarning(false) // Hide warning
+    setIsStarting(true)
+    setCallStatus('connecting')
+
+    try {
+      // Mobile-specific: Create and resume audio context
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+      if (AudioContext) {
+        const audioContext = new AudioContext()
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume()
+          console.log('Audio context resumed for mobile')
+        }
+      }
+
+      // Request microphone permission explicitly (helps with mobile)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(track => track.stop()) // Stop immediately, Retell will handle it
+        console.log('Microphone permission granted')
+      } catch (err) {
+        console.error('Microphone permission error:', err)
+        toast.error('Microphone permission denied. Please enable it in browser settings.')
+        setCallStatus('ready')
+        setIsStarting(false)
+        return
+      }
+
+      // Initialize Retell client
       const retellWebClient = new RetellWebClient()
       retellWebClientRef.current = retellWebClient
 
       retellWebClient.on('call_started', () => {
         console.log('Call started')
         setCallStatus('active')
+        setIsStarting(false)
         startTimer()
         toast.success('Interview started')
       })
@@ -71,8 +157,18 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
 
       retellWebClient.on('error', (error: any) => {
         console.error('Retell error:', error)
-        toast.error('Connection error')
+        
+        // Better error messages for mobile
+        if (error.message?.includes('permission')) {
+          toast.error('Microphone permission denied. Please enable it in browser settings.')
+        } else if (error.message?.includes('secure') || error.message?.includes('https')) {
+          toast.error('HTTPS required for mobile browsers')
+        } else {
+          toast.error('Connection error. Please try again.')
+        }
+        
         setCallStatus('ended')
+        setIsStarting(false)
       })
 
       retellWebClient.on('update', (update: any) => {
@@ -95,9 +191,40 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
         }
       })
 
-      await retellWebClient.startCall({
-        accessToken: data.access_token,
-      })
+      // Start the call (triggered by user gesture)
+      try {
+        // Add timeout wrapper for startCall
+        const startCallPromise = retellWebClient.startCall({
+          accessToken: accessToken,
+        })
+
+        // Set a timeout of 15 seconds for the call to start
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Connection timeout')), 15000)
+        })
+
+        await Promise.race([startCallPromise, timeoutPromise])
+      } catch (startError: any) {
+        console.error('Start call error:', startError)
+        
+        // Handle specific error types
+        if (startError.message?.includes('timeout') || startError.message?.includes('timed out')) {
+          toast.error('Connection timeout. Please check your internet and try again.')
+        } else if (startError.message?.includes('token') || startError.message?.includes('expired')) {
+          toast.error('Session expired. Refreshing...')
+          // Refresh the page to get a new token
+          setTimeout(() => window.location.reload(), 2000)
+          return
+        } else {
+          toast.error('Failed to start call. Please try again.')
+        }
+        
+        setCallStatus('ready')
+        setIsStarting(false)
+        setCountdown(12) // Reset countdown
+        setShowWarning(false) // Hide warning
+        return
+      }
     } catch (error: any) {
       console.error('Initialize call error:', error)
       toast.error(error.message || 'Failed to start interview')
@@ -184,98 +311,186 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
   }
 
   return (
-    <div className="space-y-4">
-      {/* Status Bar */}
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${callStatus === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
-            <span className="text-sm font-semibold text-white">
-              {callStatus === 'connecting' ? 'Connecting...' : 'Interview in Progress'}
-            </span>
+    <div className="space-y-6">
+      {/* Mobile Warning */}
+      {isMobile && callStatus === 'ready' && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Smartphone className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-400 text-sm font-semibold mb-1">Mobile Device Detected</p>
+              <p className="text-amber-300/70 text-xs">
+                Make sure you're on HTTPS and grant microphone permissions when prompted
+              </p>
+            </div>
           </div>
-          
-          {callStatus === 'active' && (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">
-                <Clock className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-mono font-bold text-white">{formatTime(timeRemaining)}</span>
+        </div>
+      )}
+
+      {/* Start Interview Button (shown when ready) */}
+      {callStatus === 'ready' && (
+        <div className="text-center py-12">
+          {/* Warning Message - Shows after 12 seconds */}
+          {showWarning && (
+            <div className="bg-rose-500/10 border-2 border-rose-500/30 rounded-xl p-4 mb-6 animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-rose-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-rose-400 font-bold text-lg mb-1">⚠️ Time Limit Exceeded!</p>
+                  <p className="text-rose-300/90 text-sm">
+                    The session may not start properly now. Please click the button below immediately to start your interview.
+                  </p>
+                </div>
               </div>
-              
-              <button
-                onClick={toggleMute}
-                className={`p-2 rounded-lg transition-all ${
-                  isMuted
-                    ? 'bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:bg-rose-500/30'
-                    : 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700'
-                }`}
-                title={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-              
-              <button
-                onClick={endCall}
-                className="px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-rose-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
-              >
-                <Phone className="w-4 h-4" />
-                <span className="hidden sm:inline">End Interview</span>
-              </button>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Two Panel Layout - Responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* AI Interviewer Card */}
-        <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-xl p-4 sm:p-5">
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-blue-500/20">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <Bot className="w-6 h-6 text-blue-400" />
+          <div className="mb-6">
+            <div className={`w-20 h-20 bg-teal-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-teal-500/20 relative ${
+              countdown <= 3 && countdown > 0 ? 'animate-pulse' : ''
+            }`}>
+              <Play className="w-10 h-10 text-teal-400" />
+              {countdown <= 3 && countdown > 0 && (
+                <div className="absolute inset-0 rounded-full border-2 border-amber-500 animate-ping"></div>
+              )}
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">AI Interviewer</h3>
-              <p className="text-xs text-blue-300">Nursing Expert</p>
-            </div>
-          </div>
-          
-          {/* Current Message */}
-          <div className="bg-slate-900/50 rounded-lg p-4 h-[250px] sm:h-[300px] overflow-y-auto custom-scrollbar">
-            {currentAgentMessage ? (
-              <p className="text-sm text-slate-200 leading-relaxed">{currentAgentMessage}</p>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-slate-500 text-center">Waiting for interviewer...</p>
+            <h3 className="text-2xl font-bold text-white mb-2">Ready to Begin?</h3>
+            <p className="text-slate-400 mb-2">
+              Click the button below to start your interview
+            </p>
+            
+            {/* Countdown Timer - Warning Only */}
+            {countdown > 0 && !showWarning && (
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 ${
+                countdown <= 5 
+                  ? 'bg-amber-500/20 border border-amber-500/30' 
+                  : 'bg-blue-500/20 border border-blue-500/30'
+              }`}>
+                <Clock className={`w-4 h-4 ${countdown <= 5 ? 'text-amber-400' : 'text-blue-400'}`} />
+                <span className={`text-sm font-bold ${countdown <= 5 ? 'text-amber-400' : 'text-blue-400'}`}>
+                  {countdown <= 5 ? '⚠️ Hurry! ' : ''}Click within {countdown}s for best results
+                </span>
               </div>
             )}
           </div>
-        </div>
-
-        {/* User Card */}
-        <div className="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 border border-teal-500/30 rounded-xl p-4 sm:p-5">
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-teal-500/20">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center">
-              <User className="w-6 h-6 text-teal-400" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">You</h3>
-              <p className="text-xs text-teal-300">Candidate</p>
-            </div>
-          </div>
           
-          {/* Current Message */}
-          <div className="bg-slate-900/50 rounded-lg p-4 h-[250px] sm:h-[300px] overflow-y-auto custom-scrollbar">
-            {currentUserMessage ? (
-              <p className="text-sm text-slate-200 leading-relaxed">{currentUserMessage}</p>
+          <button
+            onClick={handleStartInterview}
+            disabled={!isReady || isStarting}
+            className={`px-8 py-4 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-xl font-bold hover:from-teal-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-teal-500/20 inline-flex items-center gap-2 ${
+              showWarning ? 'animate-bounce' : countdown <= 3 && countdown > 0 ? 'animate-pulse' : ''
+            }`}
+          >
+            {isStarting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Starting Interview...
+              </>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-slate-500 text-center">Your responses will appear here...</p>
-              </div>
+              <>
+                <Play className="w-5 h-5" />
+                Click to Start
+              </>
             )}
+          </button>
+          
+          {!isReady && !isStarting && (
+            <p className="text-slate-500 text-sm mt-4">Preparing interview...</p>
+          )}
+        </div>
+      )}
+
+      {/* Connecting State */}
+      {callStatus === 'connecting' && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 relative">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-teal-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+          </div>
+          <p className="text-slate-400">Connecting to interviewer...</p>
+        </div>
+      )}
+
+      {/* Active Interview UI */}
+      {callStatus === 'active' && (
+        <div className="space-y-4">
+          {/* Status Bar */}
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Interview in Progress</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">
+                  <Clock className="w-4 h-4 text-teal-400" />
+                  <span className="text-sm font-mono font-bold text-white">{formatTime(timeRemaining)}</span>
+                </div>
+                
+                <button
+                  onClick={toggleMute}
+                  className={`p-2 rounded-lg transition-all cursor-pointer ${
+                    isMuted
+                      ? 'bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:bg-rose-500/30'
+                      : 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700'
+                  }`}
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+                
+                <button
+                  onClick={endCall}
+                  className="px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-rose-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden sm:inline">End Interview</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Conversation Panels */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* AI Interviewer Panel */}
+            <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-blue-400" />
+                </div>
+                <span className="text-sm font-bold text-blue-300">AI Interviewer</span>
+              </div>
+              <div className="h-[250px] sm:h-[300px] overflow-y-auto custom-scrollbar">
+                {currentAgentMessage ? (
+                  <p className="text-sm text-slate-300 leading-relaxed">{currentAgentMessage}</p>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">Listening...</p>
+                )}
+              </div>
+            </div>
+
+            {/* User Panel */}
+            <div className="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 border border-teal-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center">
+                  <User className="w-4 h-4 text-teal-400" />
+                </div>
+                <span className="text-sm font-bold text-teal-300">You</span>
+              </div>
+              <div className="h-[250px] sm:h-[300px] overflow-y-auto custom-scrollbar">
+                {currentUserMessage ? (
+                  <p className="text-sm text-slate-300 leading-relaxed">{currentUserMessage}</p>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">Speak your answer...</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Custom Scrollbar Styles */}
       <style jsx global>{`
