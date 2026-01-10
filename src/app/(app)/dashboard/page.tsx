@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { StartInterviewButton } from '../../../components/StartInterviewButton'
 import { CallAnalysisCard } from '../../../components/CallAnalysisCard'
 import Link from 'next/link'
-import { BookOpen, Clock, Zap, TrendingUp, Award, ArrowRight, Sparkles } from 'lucide-react'
+import { Sparkles, TrendingUp, Clock, Zap, FileText, Award, Target, Calendar, History, BookOpen, ArrowRight } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createClient()

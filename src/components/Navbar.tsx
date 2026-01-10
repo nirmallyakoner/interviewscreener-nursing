@@ -24,7 +24,7 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/features" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Features</Link>
+            {/* <Link href="/features" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Features</Link> */}
             <Link href="/how-it-works" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">How it Works</Link>
             <Link href="/pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Pricing</Link>
             <Link href="/contact" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Contact</Link>
@@ -58,7 +58,7 @@ export function Navbar() {
             className="md:hidden bg-slate-950 border-b border-slate-800 overflow-hidden"
           >
             <div className="px-4 pt-4 pb-8 space-y-4">
-              <Link href="/features" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Features</Link>
+              {/* <Link href="/features" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Features</Link> */}
               <Link href="/how-it-works" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">How it Works</Link>
               <Link href="/pricing" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Pricing</Link>
               <Link href="/contact" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-md">Contact</Link>

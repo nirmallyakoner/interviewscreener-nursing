@@ -27,11 +27,15 @@ interface InterviewSession {
   id: string
   started_at: string
   ended_at?: string
+  duration_minutes?: number
   actual_duration_seconds?: number
   transcript?: string
   analysis?: CallAnalysis
   status: string
   recording_url?: string  // URL to the call recording
+  credits_blocked?: number
+  credits_deducted?: number
+  credits_refunded?: number
 }
 
 interface CallAnalysisCardProps {
@@ -147,9 +151,23 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
               <Calendar className="w-4 h-4 text-slate-500" />
               <p className="text-sm text-slate-400">{formatDate(session.started_at)}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Clock className="w-4 h-4 text-slate-500" />
               <p className="text-sm text-slate-400">Duration: {formatDuration(session.actual_duration_seconds)}</p>
+              
+              {/* Credit Cost Badge */}
+              {session.credits_deducted !== undefined && session.credits_deducted > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-bold">
+                  {session.credits_deducted} credits used
+                </span>
+              )}
+              
+              {/* Savings Badge */}
+              {session.credits_refunded && session.credits_refunded > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
+                  {session.credits_refunded} credits saved
+                </span>
+              )}
             </div>
           </div>
           

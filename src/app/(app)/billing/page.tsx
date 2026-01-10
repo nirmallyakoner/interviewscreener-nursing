@@ -7,11 +7,13 @@ import toast, { Toaster } from 'react-hot-toast'
 import { RazorpayCheckout } from '../../../components/RazorpayCheckout'
 import Link from 'next/link'
 import { TransactionList } from '../../../components/TransactionList'
-import { CreditCard, Zap, Calendar, ArrowRight } from 'lucide-react'
+import { CreditHistoryList } from '../../../components/CreditHistoryList'
+import { CreditCard, Zap, Calendar, ArrowRight, History } from 'lucide-react'
 
 export default function BillingPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'payments' | 'credits'>('payments')
   const router = useRouter()
   const supabase = createClient()
 
@@ -123,16 +125,64 @@ export default function BillingPage() {
             </div>
           </div>
 
-          {/* Payment History */}
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                <CreditCard className="w-5 h-5" />
+          {/* Tab Navigation */}
+          <div className="flex items-center gap-3 p-1 bg-[#111827] border border-slate-800 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab('payments')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                activeTab === 'payments'
+                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Payment History
               </div>
-              <h2 className="text-xl font-bold text-white">Payment History</h2>
-            </div>
-            <TransactionList />
+            </button>
+            <button
+              onClick={() => setActiveTab('credits')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                activeTab === 'credits'
+                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                  : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Credit Usage
+              </div>
+            </button>
           </div>
+
+          {/* Payment History Tab */}
+          {activeTab === 'payments' && (
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Payment History</h2>
+              </div>
+              <TransactionList />
+            </div>
+          )}
+
+          {/* Credit Usage Tab */}
+          {activeTab === 'credits' && (
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
+                <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Credit Usage History</h2>
+                  <p className="text-sm text-slate-400 mt-1">Track how your credits are being used</p>
+                </div>
+              </div>
+              <CreditHistoryList />
+            </div>
+          )}
         </div>
 
         {/* Right Column - Quick Actions */}
