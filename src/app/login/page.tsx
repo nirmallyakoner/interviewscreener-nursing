@@ -4,29 +4,36 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ArrowLeft, Check, Shield } from 'lucide-react'
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<'signup' | 'signin'>('signup')
+  // Mode toggle: 'signin' or 'signup'
+  const [mode, setMode] = useState<'signin' | 'signup'>('signup')
+  const [loading, setLoading] = useState(false)
+  
+  // Form fields
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [courseType, setCourseType] = useState<'BSc Nursing' | 'Post Basic' | 'GNM'>('BSc Nursing')
-  const [loading, setLoading] = useState(false)
+  
   const router = useRouter()
   const supabase = createClient()
 
+  // Handler for Account Creation
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
+    
     try {
-      // Sign up with email and password
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: undefined,
-          data: {
+          emailRedirectTo: `${location.origin}/auth/callback`,
+           data: {
             name,
             course_type: courseType,
           },
@@ -35,231 +42,212 @@ export default function LoginPage() {
 
       if (signUpError) {
         if (signUpError.message.includes('already') || signUpError.message.includes('registered')) {
-          toast.error('This email is already registered. Please use "Sign In" instead.')
+          toast.error('This email is already registered. Switching to Sign In.')
+          setMode('signin')
           setLoading(false)
           return
         }
         throw signUpError
       }
-
+      
       if (signUpData.user && !signUpData.session) {
-        toast.error('Please check your email to confirm your account.')
-        setLoading(false)
-        return
+         toast.success('Check your email confirmation link!')
+      } else {
+         toast.success('Account created successfully!')
       }
-
-      toast.success('Account created successfully!')
-      router.push('/dashboard')
-      router.refresh()
+      
     } catch (error: any) {
-      console.error('Signup error:', error)
-      toast.error(error.message || 'An error occurred. Please try again.')
+      toast.error(error.message)
+    } finally {
       setLoading(false)
     }
   }
 
+  // Handler for Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) throw error
-
-      toast.success('Welcome back!')
-      router.push('/dashboard')
+      
+      toast.success('Successfully logged in!')
       router.refresh()
+      router.push('/dashboard')
     } catch (error: any) {
-      console.error('Sign in error:', error)
-      toast.error(error.message === 'Invalid login credentials' 
-        ? 'Invalid email or password. Please try again.' 
-        : error.message || 'An error occurred. Please try again.')
+      toast.error(error.message)
+    } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = mode === 'signup' ? handleSignUp : handleSignIn
-
   return (
-    <>
-      <Toaster position="top-center" />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-        <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-          {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setMode('signup')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all cursor-pointer ${
-                mode === 'signup'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign Up
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('signin')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all cursor-pointer ${
-                mode === 'signin'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign In
-            </button>
-          </div>
-
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {mode === 'signup' ? 'Get Started' : 'Welcome Back'}
-            </h1>
-            <p className="text-gray-600">
-              {mode === 'signup' 
-                ? 'Create your account to start practicing' 
-                : 'Sign in to continue practicing'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field - Only for Sign Up */}
-            {mode === 'signup' && (
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 placeholder:text-gray-400"
-                  placeholder="Your full name"
-                  disabled={loading}
-                />
+    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex overflow-hidden">
+      <Toaster position="top-right" />
+      
+      {/* Left Panel - Hero/Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-slate-900 border-r border-slate-800 items-center justify-center p-12">
+         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-900/40 via-slate-900 to-slate-900 pointer-events-none" />
+         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-[#0B0F17] to-transparent" />
+         
+         <div className="relative z-10 max-w-lg">
+           <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-12 group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Home
+           </Link>
+           
+           <motion.h1 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.2 }}
+             className="text-5xl font-bold text-white mb-6 leading-tight"
+           >
+             Master Your <br />
+             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-500">
+               Nursing Interview
+             </span>
+           </motion.h1>
+           
+           <motion.p 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 0.3 }}
+             className="text-xl text-slate-400 mb-12"
+           >
+             Join thousands of nursing students practicing with our state-of-the-art AI interviewer.
+           </motion.p>
+           
+           <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ delay: 0.4 }}
+             className="space-y-4"
+           >
+              <div className="flex items-center gap-4 text-slate-300">
+                 <div className="p-1 rounded-full bg-teal-500/10"><Check className="w-4 h-4 text-teal-400" /></div>
+                 <span>Real-time voice analysis</span>
               </div>
-            )}
-
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 placeholder:text-gray-400"
-                placeholder="student@example.com"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-900 placeholder:text-gray-400"
-                placeholder={mode === 'signup' ? 'Create a password (min 6 characters)' : 'Enter your password'}
-                disabled={loading}
-              />
-            </div>
-
-            {/* Course Type Selection - Only for Sign Up */}
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Select Your Course
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCourseType('BSc Nursing')}
-                    disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                      courseType === 'BSc Nursing'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-sm">BSc</div>
-                    <div className="text-xs mt-1">Nursing</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCourseType('Post Basic')}
-                    disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                      courseType === 'Post Basic'
-                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-sm">Post</div>
-                    <div className="text-xs mt-1">Basic</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCourseType('GNM')}
-                    disabled={loading}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                      courseType === 'GNM'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-sm">GNM</div>
-                    <div className="text-xs mt-1 opacity-0">-</div>
-                  </button>
-                </div>
+              <div className="flex items-center gap-4 text-slate-300">
+                 <div className="p-1 rounded-full bg-teal-500/10"><Check className="w-4 h-4 text-teal-400" /></div>
+                 <span>Instant detailed feedback</span>
               </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl cursor-pointer"
-            >
-              {loading 
-                ? (mode === 'signup' ? 'Creating Account...' : 'Signing In...') 
-                : (mode === 'signup' ? 'Create Account' : 'Sign In')}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>
-              {mode === 'signup' 
-                ? 'Secure password-based authentication' 
-                : 'Enter your credentials to continue'}
-            </p>
-          </div>
-        </div>
+              <div className="flex items-center gap-4 text-slate-300">
+                 <div className="p-1 rounded-full bg-teal-500/10"><Check className="w-4 h-4 text-teal-400" /></div>
+                 <span>Track your progress</span>
+              </div>
+           </motion.div>
+         </div>
       </div>
-    </>
+
+      {/* Right Panel - Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
+         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/10 via-[#0B0F17] to-[#0B0F17] pointer-events-none lg:hidden" />
+         
+         <div className="w-full max-w-md relative z-10">
+            <div className="mb-8 text-center lg:text-left">
+               <Link href="/" className="lg:hidden inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8">
+                  <ArrowLeft className="w-4 h-4" /> Back to Home
+               </Link>
+               <h2 className="text-3xl font-bold text-white mb-2">{mode === 'signup' ? 'Create an Account' : 'Welcome Back'}</h2>
+               <p className="text-slate-400">
+                 {mode === 'signup' ? 'Start your journey to interview success.' : 'Enter your details to access your dashboard.'}
+               </p>
+            </div>
+
+            <form onSubmit={mode === 'signup' ? handleSignUp : handleSignIn} className="space-y-6">
+               
+               {/* Name Input (Signup Only) */}
+               {mode === 'signup' && (
+                 <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                      placeholder="Jane Doe"
+                    />
+                 </div>
+               )}
+
+               {/* Email Input */}
+               <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+                  <input 
+                    type="email" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                    placeholder="you@example.com"
+                  />
+               </div>
+               
+               {/* Password Input */}
+               <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                  <input 
+                    type="password" 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                    placeholder="••••••••"
+                  />
+               </div>
+
+                {/* Course Type Selection (Signup Only) */}
+               {mode === 'signup' && (
+                 <div>
+                   <label className="block text-sm font-medium text-slate-300 mb-3">Select Your Course</label>
+                   <div className="grid grid-cols-3 gap-3">
+                     {['BSc Nursing', 'Post Basic', 'GNM'].map((type) => (
+                       <button
+                         key={type}
+                         type="button"
+                         onClick={() => setCourseType(type as any)}
+                         className={`p-3 rounded-xl border transition-all text-sm font-medium cursor-pointer ${
+                           courseType === type
+                             ? 'bg-teal-500/20 border-teal-500 text-teal-400'
+                             : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                         }`}
+                       >
+                         {type}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               <button 
+                 type="submit" 
+                 disabled={loading}
+                 className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-teal-500 to-emerald-600 text-white hover:shadow-lg hover:shadow-teal-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+               >
+                 {loading ? 'Processing...' : (mode === 'signup' ? 'Sign Up' : 'Sign In')}
+               </button>
+            </form>
+
+            <div className="mt-8 text-center">
+               <button 
+                 onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+                 className="text-slate-400 hover:text-teal-400 transition-colors text-sm cursor-pointer"
+               >
+                 {mode === 'signup' ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+               </button>
+            </div>
+            
+            <div className="mt-12 flex justify-center items-center gap-2 text-slate-600 text-xs">
+               <Shield className="w-3 h-3" />
+               <span>Secure Authentication</span>
+            </div>
+         </div>
+      </div>
+    </div>
   )
 }

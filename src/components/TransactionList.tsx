@@ -80,8 +80,11 @@ export function TransactionList() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading transactions...</p>
+          <div className="w-16 h-16 mx-auto mb-4 relative">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-teal-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+          </div>
+          <p className="text-slate-400">Loading transactions...</p>
         </div>
       </div>
     )
@@ -89,15 +92,17 @@ export function TransactionList() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <svg className="w-12 h-12 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-red-700 font-semibold mb-2">Failed to load transactions</p>
-        <p className="text-red-600 text-sm mb-4">{error}</p>
+      <div className="bg-gradient-to-br from-rose-500/10 to-red-500/10 border border-rose-500/30 rounded-xl p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p className="text-rose-400 font-semibold mb-2">Failed to load transactions</p>
+        <p className="text-rose-300/70 text-sm mb-4">{error}</p>
         <button
           onClick={fetchTransactions}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+          className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-all cursor-pointer"
         >
           Try Again
         </button>
@@ -107,12 +112,14 @@ export function TransactionList() {
 
   if (transactions.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-12 text-center">
-        <svg className="w-16 h-16 text-blue-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">No Transactions Yet</h3>
-        <p className="text-gray-600">Your transaction history will appear here once you make a payment.</p>
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">No Transactions Yet</h3>
+        <p className="text-slate-400">Your transaction history will appear here once you make a payment.</p>
       </div>
     )
   }
@@ -121,12 +128,12 @@ export function TransactionList() {
     <>
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-400">
             Showing {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
           </p>
           <button
             onClick={fetchTransactions}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-2"
+            className="text-teal-400 hover:text-teal-300 text-sm font-semibold flex items-center gap-2 cursor-pointer transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
