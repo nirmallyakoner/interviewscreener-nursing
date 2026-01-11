@@ -148,6 +148,40 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('⚠️ Skipping credit deduction (no duration or zero duration)')
         }
+
+        // Trigger answer evaluation if transcript exists
+        if (transcript && endResult.data && endResult.data.length > 0) {
+          console.log('🎯 Triggering answer evaluation...')
+          const sessionId = endResult.data[0].id
+          
+          try {
+            const evaluationResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/interview/evaluate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_id: sessionId,
+                transcript: transcript
+              })
+            })
+
+            if (evaluationResponse.ok) {
+              const evalData = await evaluationResponse.json()
+              console.log('✅ Answer evaluation completed:', {
+                perfect: evalData.overall?.perfect,
+                moderate: evalData.overall?.moderate,
+                wrong: evalData.overall?.wrong,
+                average_score: evalData.overall?.average_score
+              })
+            } else {
+              const errorData = await evaluationResponse.json()
+              console.error('❌ Evaluation failed:', errorData.error)
+            }
+          } catch (evalError: any) {
+            console.error('❌ Evaluation error:', evalError.message)
+          }
+        } else {
+          console.log('⚠️ Skipping evaluation (no transcript or session not found)')
+        }
         break
 
       case 'call_analyzed':

@@ -32,7 +32,6 @@ export default function AnalysisPage() {
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'completed')
-        .not('analysis', 'is', null)
         .order('started_at', { ascending: false })
 
       if (error) throw error

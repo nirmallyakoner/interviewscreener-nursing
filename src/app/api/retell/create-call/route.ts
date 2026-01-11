@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Get user profile to check credits and duration
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('credits, blocked_credits, interview_duration, subscription_type, course_type')
+      .select('name, credits, blocked_credits, interview_duration, subscription_type, course_type')
       .eq('id', user.id)
       .single()
 
@@ -137,6 +137,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Fetch questions for this interview
+    let selectedQuestions: any[] = []
+    try {
+      const questionResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/questions/select`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || ''
+        },
+        body: JSON.stringify({
+          course_type: profile.course_type,
+          duration_minutes: interviewDuration
+        })
+      })
+
+      if (!questionResponse.ok) {
+        throw new Error('Failed to fetch questions')
+      }
+
+      const questionData = await questionResponse.json()
+      selectedQuestions = questionData.questions || []
+
+      console.log('[CreateCall] Questions selected:', {
+        count: selectedQuestions.length,
+        default_count: questionData.metadata?.default_count,
+        custom_count: questionData.metadata?.custom_count
+      })
+    } catch (questionError: any) {
+      console.error('[CreateCall] Question selection failed:', questionError)
+      
+      // Refund blocked credits
+      await refundBlockedCredits(supabase, user.id, creditsToBlock, session.id)
+      
+      // Clean up session
+      await supabase
+        .from('interview_sessions')
+        .update({ status: 'failed' })
+        .eq('id', session.id)
+
+      return NextResponse.json(
+        { error: 'Failed to prepare interview questions. Your credits have been restored.' },
+        { status: 500 }
+      )
+    }
+
+    // Format questions for Retell prompt (as JSON string)
+    const questionsFormatted = JSON.stringify(selectedQuestions)
+
     // Create Retell web call
     let webCallResponse
     try {
@@ -149,8 +197,10 @@ export async function POST(request: NextRequest) {
         },
         // Dynamic variables for template substitution in agent prompt
         retell_llm_dynamic_variables: {
+          name: profile.name || 'Candidate',
           course_type: profile.course_type,
           duration_minutes: interviewDuration.toString(),
+          questions: questionsFormatted,
         },
       })
     } catch (callError: any) {
@@ -178,6 +228,35 @@ export async function POST(request: NextRequest) {
         retell_call_id: webCallResponse.call_id,
       })
       .eq('id', session.id)
+
+    // Store selected questions in database
+    if (selectedQuestions.length > 0) {
+      const questionRecords = selectedQuestions.map((q, index) => ({
+        session_id: session.id,
+        question_id: q.id,
+        question_order: index + 1,
+        was_asked: false
+      }))
+
+      const { error: questionsError } = await supabase
+        .from('interview_session_questions')
+        .insert(questionRecords)
+
+      if (questionsError) {
+        console.error('[CreateCall] ❌ CRITICAL: Failed to store questions:', {
+          error: questionsError,
+          error_message: questionsError.message,
+          error_details: questionsError.details,
+          error_hint: questionsError.hint,
+          error_code: questionsError.code,
+          session_id: session.id,
+          question_count: questionRecords.length
+        })
+        // Non-critical error, continue with call
+      } else {
+        console.log('[CreateCall] ✅ Successfully stored questions:', questionRecords.length)
+      }
+    }
 
     // Log interview start
     console.log('[CreateCall] Interview started successfully:', {

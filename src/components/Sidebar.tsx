@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, User, Mic, FileText, CreditCard, LogOut, X, Activity } from 'lucide-react'
+import { LayoutDashboard, User, Mic, FileText, CreditCard, LogOut, X, Activity, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -31,6 +31,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Start Interview', href: '/interview', icon: Mic },
+    { name: 'Question Bank', href: '/question-bank', icon: BookOpen },
     { name: 'Analysis Reports', href: '/analysis', icon: FileText },
     { name: 'Activity', href: '/activity', icon: Activity },
     { name: 'Billing', href: '/billing', icon: CreditCard },

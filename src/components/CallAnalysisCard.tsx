@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, CheckCircle2, XCircle, TrendingUp, Lightbulb, AlertCircle, Mic2, ChevronDown, Play } from 'lucide-react'
+import { Calendar, Clock, CheckCircle2, XCircle, TrendingUp, Lightbulb, AlertCircle, Mic2, ChevronDown, Play, Eye, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 // Retell's actual analysis structure
 interface CallAnalysis {
@@ -45,6 +47,7 @@ interface CallAnalysisCardProps {
 
 export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [evaluating, setEvaluating] = useState(false)
 
   useEffect(() => {
     console.log('[CallAnalysisCard] Rendering with session:', {
@@ -56,6 +59,31 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
       analysis_data: session.analysis
     })
   }, [session])
+
+  const handleReEvaluate = async () => {
+    setEvaluating(true)
+    try {
+      const response = await fetch('/api/interview/evaluate-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: session.id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Evaluation failed')
+      }
+
+      toast.success('Evaluation completed! Refresh the page to see results.')
+      setTimeout(() => window.location.reload(), 2000)
+    } catch (error: any) {
+      console.error('Re-evaluation error:', error)
+      toast.error(error.message || 'Failed to evaluate')
+    } finally {
+      setEvaluating(false)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -97,6 +125,15 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
 
   const analysis = session.analysis
 
+  // Debug logging
+  console.log('[CallAnalysisCard] Session data:', {
+    id: session.id,
+    has_transcript: !!session.transcript,
+    transcript_length: session.transcript?.length || 0,
+    has_analysis: !!analysis,
+    status: session.status
+  })
+
   if (!analysis) {
     return (
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-6">
@@ -111,13 +148,30 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
               <p className="text-sm text-slate-400">{formatDuration(session.actual_duration_seconds)}</p>
             </div>
           </div>
-          <span className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold rounded-full animate-pulse">
-            Processing...
+          <span className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold rounded-full">
+            Not Analyzed
           </span>
         </div>
-        <p className="text-slate-500 text-sm">
-          Analysis is being processed. Please check back in a few minutes.
+        <p className="text-slate-400 text-sm mb-4">
+          {session.transcript 
+            ? `This interview has not been analyzed yet. Click below to evaluate your answers. (Transcript: ${session.transcript.length} chars)`
+            : '⚠️ No transcript available. The interview recording may not have been captured properly.'}
         </p>
+        {session.transcript && (
+          <button
+            onClick={handleReEvaluate}
+            disabled={evaluating}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${evaluating ? 'animate-spin' : ''}`} />
+            {evaluating ? 'Evaluating...' : 'Evaluate Now'}
+          </button>
+        )}
+        {!session.transcript && (
+          <p className="text-xs text-slate-500 mt-2">
+            💡 Tip: Make sure you speak during the interview so the transcript can be captured.
+          </p>
+        )}
       </div>
     )
   }
@@ -368,6 +422,25 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
             </p>
           </div>
         )}
+
+        {/* View Detailed Analysis Button */}
+        <Link 
+          href={`/analysis/${session.id}`}
+          className="block mb-6 p-4 rounded-xl bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border border-teal-500/20 hover:border-teal-500/40 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-teal-500/20 group-hover:bg-teal-500/30 transition-colors">
+                <Eye className="w-5 h-5 text-teal-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">View Detailed Analysis</h4>
+                <p className="text-xs text-slate-400 mt-0.5">See question-by-question breakdown and feedback</p>
+              </div>
+            </div>
+            <div className="text-teal-400">→</div>
+          </div>
+        </Link>
 
         {/* Transcript Toggle */}
         {showTranscript && session.transcript && (

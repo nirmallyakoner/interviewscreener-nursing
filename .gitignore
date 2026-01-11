@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Ignore SQL scripts folder
 sql-scripts/
+
+# Ignore docs
+docs/
