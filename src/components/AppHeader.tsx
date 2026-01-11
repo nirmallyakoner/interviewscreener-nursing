@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Menu, X, Zap, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface AppHeaderProps {
   onToggleSidebar: () => void
@@ -59,9 +60,7 @@ export function AppHeader({ onToggleSidebar, isSidebarOpen }: AppHeaderProps) {
 
         {/* Center: Logo */}
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">N</span>
-          </div>
+          <Image src="/app-logo.png" alt="NursingPrep" width={32} height={32} className="rounded-lg" />
           <span className="font-bold text-white text-lg">NursingPrep</span>
         </Link>
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, User, Mic, FileText, CreditCard, LogOut, X, Activity, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -66,9 +67,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Header */}
         <div className="p-6 flex items-center justify-between">
           <Link href="/dashboard" className="text-xl font-bold text-white flex items-center gap-2" onClick={handleNavClick}>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
-              <Mic className="w-5 h-5 text-white" />
-            </div>
+            <Image src="/app-logo.png" alt="NursingPrep" width={32} height={32} className="rounded-lg" />
             NursingPrep
           </Link>
           

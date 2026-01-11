@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Shield } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -14,9 +15,13 @@ export function Navbar() {
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-3 cursor-pointer group">
-            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
+            <Image 
+              src="/app-logo.png" 
+              alt="NursingPrep" 
+              width={40} 
+              height={40} 
+              className="rounded-xl shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform" 
+            />
             <span className="font-bold text-xl tracking-tight text-white group-hover:text-teal-400 transition-colors">
               Nursing<span className="text-teal-400 group-hover:text-white transition-colors">Prep</span>
             </span>

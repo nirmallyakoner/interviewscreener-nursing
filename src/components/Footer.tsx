@@ -1,14 +1,12 @@
 import Link from 'next/link'
-import { Shield } from 'lucide-react'
+import Image from 'next/image'
 
 export function Footer() {
   return (
     <footer className="bg-slate-950 border-t border-slate-900 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
          <div className="flex items-center gap-2">
-           <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center border border-teal-500/20">
-              <Shield className="w-4 h-4 text-teal-500" />
-           </div>
+           <Image src="/app-logo.png" alt="NursingPrep" width={32} height={32} className="rounded-lg" />
            <span className="text-white font-bold text-lg tracking-tight">NursingPrep</span>
          </div>
          

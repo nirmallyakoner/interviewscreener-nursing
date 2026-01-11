@@ -49,17 +49,6 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
   const [isExpanded, setIsExpanded] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
 
-  useEffect(() => {
-    console.log('[CallAnalysisCard] Rendering with session:', {
-      id: session.id,
-      started_at: session.started_at,
-      has_analysis: !!session.analysis,
-      has_transcript: !!session.transcript,
-      status: session.status,
-      analysis_data: session.analysis
-    })
-  }, [session])
-
   const handleReEvaluate = async () => {
     setEvaluating(true)
     try {
@@ -124,15 +113,6 @@ export function CallAnalysisCard({ session, showTranscript = true }: CallAnalysi
   }
 
   const analysis = session.analysis
-
-  // Debug logging
-  console.log('[CallAnalysisCard] Session data:', {
-    id: session.id,
-    has_transcript: !!session.transcript,
-    transcript_length: session.transcript?.length || 0,
-    has_analysis: !!analysis,
-    status: session.status
-  })
 
   if (!analysis) {
     return (

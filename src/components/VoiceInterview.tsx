@@ -144,7 +144,7 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
         const audioContext = new AudioContext()
         if (audioContext.state === 'suspended') {
           await audioContext.resume()
-          console.log('Audio context resumed for mobile')
+          // Audio context resumed
         }
       }
 
@@ -152,7 +152,7 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         stream.getTracks().forEach(track => track.stop()) // Stop immediately, Retell will handle it
-        console.log('Microphone permission granted')
+        // Microphone permission granted
       } catch (err) {
         console.error('Microphone permission error:', err)
         toast.error('Microphone permission denied. Please enable it in browser settings.')
@@ -166,7 +166,7 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
       retellWebClientRef.current = retellWebClient
 
       retellWebClient.on('call_started', () => {
-        console.log('Call started')
+        // Call started
         setCallStatus('active')
         setIsStarting(false)
         startTimer()
@@ -177,7 +177,7 @@ export function VoiceInterview({ durationMinutes, onComplete }: VoiceInterviewPr
       })
 
       retellWebClient.on('call_ended', () => {
-        console.log('Call ended')
+        // Call ended
         handleCallEnd()
       })
 

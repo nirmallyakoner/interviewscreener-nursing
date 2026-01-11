@@ -2,6 +2,10 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Script from 'next/script'
+import { createClient } from '@/lib/supabase/client'
 import { 
   CheckCircle2, 
   Shield, 
@@ -13,12 +17,19 @@ import {
   Users,
   Clock,
   Sparkles,
-  Zap
+  Zap,
+  AlertCircle,
+  X
 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { Footer } from '../components/Footer'
 
 export default function LandingPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [isOneTapReady, setIsOneTapReady] = useState(false)
+  const [showThirdPartyBlockedNotice, setShowThirdPartyBlockedNotice] = useState(false)
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -35,9 +46,116 @@ export default function LandingPage() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   }
 
+  // Initialize Google One Tap with FedCM (production-ready)
+  useEffect(() => {
+    const initializeOneTap = async () => {
+      // Check if user is already logged in
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) return
+
+      // Ensure Google Identity Services is loaded
+      if (typeof window !== 'undefined' && window.google) {
+        try {
+          // FedCM-native initialization (required for 2024+)
+          window.google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+            callback: handleGoogleOneTapCallback,
+            auto_select: false,
+            cancel_on_tap_outside: false,
+            use_fedcm_for_prompt: true,
+            itp_support: true,
+          })
+
+          // Display the One Tap prompt with notification handler
+          window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed()) {
+              const reason = notification.getNotDisplayedReason()
+              // Check if blocked by browser settings
+              if (reason === 'suppressed_by_user' || reason === 'opt_out_or_no_session') {
+                setShowThirdPartyBlockedNotice(true)
+                // Auto-hide after 10 seconds
+                setTimeout(() => setShowThirdPartyBlockedNotice(false), 10000)
+              }
+            }
+          })
+          setIsOneTapReady(true)
+        } catch (error) {
+          console.error('Failed to initialize One Tap:', error)
+        }
+      }
+    }
+
+    // Delay to ensure Google script is loaded
+    const timer = setTimeout(initializeOneTap, 1000)
+    return () => clearTimeout(timer)
+  }, [supabase, router])
+
+  // Handle Google One Tap callback - FedCM returns JWT ID token
+  const handleGoogleOneTapCallback = async (response: any) => {
+    try {
+      if (!response.credential) {
+        throw new Error('No credential received from Google One Tap')
+      }
+
+      // Use signInWithIdToken with the JWT credential from FedCM
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: response.credential,
+      })
+
+      if (error) {
+        console.error('One Tap sign-in error:', error.message)
+        throw error
+      }
+
+      // Check if user needs to complete profile
+      if (!data.user?.user_metadata?.course_type) {
+        router.push('/auth/complete-profile')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (error: any) {
+      console.error('One Tap sign-in failed:', error.message)
+      // Silently fail - user can use regular login
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-teal-500/30 overflow-x-hidden">
-      <Navbar />
+    <>
+      {/* Google Identity Services Script */}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => {/* Google Identity Services loaded */}}
+      />
+
+      <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-teal-500/30 overflow-x-hidden">
+        <Navbar />
+
+        {/* Third-Party Sign-In Blocked Notice */}
+        {showThirdPartyBlockedNotice && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-md mx-auto px-4 animate-in slide-in-from-top duration-300">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 backdrop-blur-sm shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-amber-300 mb-1">Quick Sign-In Unavailable</h4>
+                  <p className="text-xs text-amber-200/80 leading-relaxed">
+                    Your browser has third-party sign-in disabled. No worries! Use the <strong>"Sign In"</strong> button above to continue.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowThirdPartyBlockedNotice(false)}
+                  className="flex-shrink-0 text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       <main>
         {/* HERO SECTION */}
@@ -367,7 +485,8 @@ export default function LandingPage() {
         </motion.section>
       </main>
       
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   )
 }

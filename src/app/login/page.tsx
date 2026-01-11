@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Check, Shield } from 'lucide-react'
+import { ArrowLeft, Check, Shield, Chrome } from 'lucide-react'
 
 export default function LoginPage() {
   // Mode toggle: 'signin' or 'signup'
   const [mode, setMode] = useState<'signin' | 'signup'>('signup')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   
   // Form fields
   const [name, setName] = useState('')
@@ -86,6 +87,32 @@ export default function LoginPage() {
     }
   }
 
+  // Handler for Google Sign In
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+
+      if (error) throw error
+      
+      // User will be redirected to Google OAuth consent screen
+      // No need to show success message as they're leaving the page
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign in with Google')
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex overflow-hidden">
       <Toaster position="top-right" />
@@ -156,6 +183,27 @@ export default function LoginPage() {
                <p className="text-slate-400">
                  {mode === 'signup' ? 'Start your journey to interview success.' : 'Enter your details to access your dashboard.'}
                </p>
+             {/* Google Sign In Button */}
+             <button 
+               onClick={handleGoogleSignIn}
+               disabled={googleLoading}
+               type="button"
+               className="w-full py-4 rounded-xl font-semibold bg-white text-slate-900 hover:bg-slate-50 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
+             >
+               <Chrome className="w-5 h-5" />
+               {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+             </button>
+
+             {/* Divider */}
+             <div className="relative my-8">
+               <div className="absolute inset-0 flex items-center">
+                 <div className="w-full border-t border-slate-800"></div>
+               </div>
+               <div className="relative flex justify-center text-sm">
+                 <span className="px-4 bg-[#0B0F17] text-slate-500">or continue with email</span>
+               </div>
+             </div>
+
             </div>
 
             <form onSubmit={mode === 'signup' ? handleSignUp : handleSignIn} className="space-y-6">
