@@ -57,7 +57,12 @@ export default function CompleteProfilePage() {
       if (error) throw error
 
       toast.success('Profile completed successfully!')
-      router.push('/dashboard')
+      
+      // Refresh to get updated user data, then redirect
+      router.refresh()
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile')
     } finally {

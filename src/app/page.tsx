@@ -190,12 +190,19 @@ export default function LandingPage() {
                 </motion.p>
                 
                 <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Link 
-                    href="/dashboard" 
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl font-bold text-lg transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:shadow-[0_0_30px_rgba(45,212,191,0.5)]"
+                  <button
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (user) {
+                        router.push('/dashboard')
+                      } else {
+                        router.push('/login')
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl font-bold text-lg transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:shadow-[0_0_30px_rgba(45,212,191,0.5)] cursor-pointer"
                   >
                     Start Mock Interview <ChevronRight className="w-5 h-5" />
-                  </Link>
+                  </button>
                   <div className="flex items-center justify-center gap-2 px-6 py-4 text-slate-400 text-sm font-medium">
                     <Shield className="w-4 h-4 text-teal-500" /> No credit card required
                   </div>
