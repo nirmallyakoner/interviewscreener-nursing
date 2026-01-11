@@ -16,17 +16,17 @@ export default function NotFound() {
       </div>
 
       {/* Floating Particles */}
-      {[...Array(20)].map((_, i) => (
+      {typeof window !== 'undefined' && [...Array(20)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-teal-400/30 rounded-full"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * 1000,
+            y: Math.random() * 800,
           }}
           animate={{
-            y: [null, Math.random() * window.innerHeight],
-            x: [null, Math.random() * window.innerWidth],
+            y: [null, Math.random() * 800],
+            x: [null, Math.random() * 1000],
           }}
           transition={{
             duration: Math.random() * 10 + 10,
